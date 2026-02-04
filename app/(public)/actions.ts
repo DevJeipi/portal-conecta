@@ -24,18 +24,11 @@ export async function login(formData: FormData) {
   }
 
   // Se logou, busca a ROLE na tabela profiles
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", data.user.id)
     .single();
-
-  // Agora sim essas variáveis existem para serem logadas
-  console.log("------------------------------------------------");
-  console.log("ID do Usuário:", data.user.id);
-  console.log("Erro ao buscar perfil?", profileError);
-  console.log("Dados do perfil encontrados:", profile);
-  console.log("------------------------------------------------");
 
   const userRole = profile?.role || "client";
 
@@ -54,4 +47,18 @@ export async function login(formData: FormData) {
   } else {
     redirect("/dashboard");
   }
+}
+
+export async function logout() {
+  const supabase = await createClient();
+
+  //  Desloga do Supabase
+  await supabase.auth.signOut();
+
+  // Apaga o cookie de permissão
+  const cookieStore = await cookies();
+  cookieStore.delete("user_role");
+
+  // Manda de volta pra tela de login
+  redirect("/");
 }
