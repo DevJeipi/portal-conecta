@@ -97,7 +97,7 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)] p-4 space-y-4">
       {/* --- HEADER --- */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="flex flex-col w-full sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold capitalize text-neutral-800">
             {format(currentDate, "MMMM yyyy", { locale: ptBR })}
@@ -120,12 +120,12 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
           <Select
             defaultValue={initialClientId}
             onValueChange={handleClientChange}
           >
-            <SelectTrigger className="w-50 bg-white">
+            <SelectTrigger className="w-full md:w-50 bg-white">
               <SelectValue placeholder="Filtrar Cliente" />
             </SelectTrigger>
             <SelectContent>
@@ -141,7 +141,7 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
           {/* Botão Novo Post */}
           <Dialog open={isNewPostOpen} onOpenChange={setIsNewPostOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full md:w-auto">
                 <Plus size={16} className="mr-2" /> Novo Post
               </Button>
             </DialogTrigger>
@@ -178,7 +178,7 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
                     </select>
                   </div>
                 </div>
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full md:w-auto">
                   Salvar Agendamento
                 </Button>
               </form>
@@ -187,52 +187,51 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
         </div>
       </div>
 
-      {/* --- GRID DO CALENDÁRIO --- */}
-      <div className="flex-1 border rounded-lg shadow-sm bg-white overflow-hidden flex flex-col">
-        {/* Dias da semana */}
-        <div className="grid grid-cols-7 border-b bg-neutral-50 shrink-0">
-          {weekDays.map((day) => (
-            <div
-              key={day}
-              className="py-2 text-center text-sm font-medium text-neutral-500 uppercase tracking-wider"
-            >
-              {day}
+      {/* --- CONTAINER DO GRID --- */}
+      <div className="flex-1 border rounded-lg shadow-sm bg-white flex flex-col overflow-hidden relative">
+        <div className="overflow-x-auto flex-1 flex flex-col">
+          <div className="min-w-[800px] flex-1 flex flex-col">
+            <div className="grid grid-cols-7 border-b bg-neutral-50 shrink-0">
+              {weekDays.map((day) => (
+                <div key={day} className="py-2 text-center text-sm ...">
+                  {day}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Células dos dias */}
-        <div className="grid grid-cols-7 flex-1 auto-rows-fr">
-          {calendarDays.map((day) => {
-            const dayPosts = posts.filter((post: any) =>
-              isSameDay(new Date(post.scheduled_date), day),
-            );
+            {/* Células dos dias */}
+            <div className="grid grid-cols-7 flex-1 auto-rows-fr">
+              {calendarDays.map((day) => {
+                const dayPosts = posts.filter((post: any) =>
+                  isSameDay(new Date(post.scheduled_date), day),
+                );
 
-            const isCurrentMonth = isSameMonth(day, currentDate);
+                const isCurrentMonth = isSameMonth(day, currentDate);
 
-            return (
-              <div
-                key={day.toString()}
-                className={`
-                    min-h-30 border-b border-r p-2 transition-colors
+                return (
+                  <div
+                    key={day.toString()}
+                    className={`
+                    min-h-20 md:min-h-30
+                    border-b border-r p-2 transition-colors
                     ${!isCurrentMonth ? "bg-neutral-50/50" : "bg-white"}
                     hover:bg-neutral-50
                 `}
-              >
-                <div
-                  className={`text-right text-sm mb-2 ${!isCurrentMonth ? "text-neutral-300" : "text-neutral-600 font-medium"}`}
-                >
-                  {format(day, "d")}
-                </div>
+                  >
+                    <div
+                      className={`text-right text-sm mb-2 ${!isCurrentMonth ? "text-neutral-300" : "text-neutral-600 font-medium"}`}
+                    >
+                      {format(day, "d")}
+                    </div>
 
-                <div className="flex flex-col gap-1.5">
-                  {dayPosts.map((post: any) => {
-                    const isPublished = post.status === "published";
-                    return (
-                      <button
-                        key={post.id}
-                        onClick={() => setSelectedPost(post)}
-                        className={`
+                    <div className="flex flex-col gap-1.5">
+                      {dayPosts.map((post: any) => {
+                        const isPublished = post.status === "published";
+                        return (
+                          <button
+                            key={post.id}
+                            onClick={() => setSelectedPost(post)}
+                            className={`
                                     text-xs text-left border rounded px-2 py-1.5 truncate shadow-sm transition-all
                                     flex items-center gap-1.5
                                     ${
@@ -241,20 +240,22 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
                                         : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
                                     }
                                 `}
-                      >
-                        {isPublished ? (
-                          <CheckCircle2 size={12} />
-                        ) : (
-                          <Clock size={12} />
-                        )}
-                        <span className="truncate">{post.title}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+                          >
+                            {isPublished ? (
+                              <CheckCircle2 size={12} />
+                            ) : (
+                              <Clock size={12} />
+                            )}
+                            <span className="truncate">{post.title}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -327,6 +328,7 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
             {/* Lado Esquerdo: Botão de Excluir */}
             <div className="flex-1 flex justify-start">
               <Button
+                className="w-full md:w-auto"
                 variant="destructive"
                 size="icon"
                 onClick={handleDelete}
@@ -338,14 +340,18 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
 
             {/* Lado Direito: Fechar e Confirmar */}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setSelectedPost(null)}>
+              <Button
+                className="w-full md:w-auto"
+                variant="outline"
+                onClick={() => setSelectedPost(null)}
+              >
                 Fechar
               </Button>
 
               {selectedPost?.status !== "published" && (
                 <Button
                   onClick={handleConfirm}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="w-full md:w-auto bg-green-600 hover:bg-green-700"
                 >
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                   Confirmar Postagem
