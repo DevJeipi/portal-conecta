@@ -95,7 +95,7 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
   }
 
   return (
-    <div className="flex flex-col h-screen p-4 space-y-4">
+    <div className="flex flex-col h-[calc(100vh-2rem)] p-4 space-y-4">
       {/* --- HEADER --- */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">

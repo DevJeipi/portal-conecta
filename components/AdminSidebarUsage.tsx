@@ -73,7 +73,7 @@ export default function AdminSidebarUsage() {
                         ${isActive ? "bg-neutral/10! font-bold! text-white! transition-all!" : ""}
                       `}
                   >
-                    <Link href={item.url}>
+                    <Link href={item.url} prefetch={true}>
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>
