@@ -10,23 +10,45 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   useSidebar,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
+
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 
 import Image from "next/image";
 import Link from "next/link";
-
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/(public)/actions";
-import { Calendar, Home, LogOut } from "lucide-react";
+import {
+  Calendar,
+  Home,
+  LogOut,
+  ChevronRight,
+  ImageIcon,
+  Video,
+} from "lucide-react";
 
-const items = [
-  { title: "Início", url: "/admin/dashboard", icon: Home },
-  { title: "Calendários", url: "/admin/calendar", icon: Calendar },
+// Itens principais
+const mainItems = [
+  {
+    title: "Início",
+    url: "/admin/dashboard",
+    icon: Home,
+  },
 ];
 
 export default function AdminSidebarUsage() {
   const pathname = usePathname();
   const { setOpen } = useSidebar();
+
+  const isActiveLink = (url: string) =>
+    pathname === url || pathname.startsWith(`${url}/`);
 
   return (
     <Sidebar
@@ -35,67 +57,128 @@ export default function AdminSidebarUsage() {
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      {/* HEADER / LOGO */}
-      <SidebarHeader className="bg-primary font-secondary rounded-t-lg text-neutral">
-        <SidebarMenu className="px-2 pt-4">
-          <SidebarMenuItem className="flex items-center justify-center">
-            <Image
-              src={"/symbol-conecta-wtbg-white.webp"}
-              alt="Logo Conecta"
-              width={20}
-              height={10}
-              unoptimized
-              priority
-            />
+      {/* --- HEADER --- */}
+      <SidebarHeader className="bg-primary font-secondary rounded-t-lg text-neutral border-b border-neutral/10">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-transparent active:bg-transparent"
+            >
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg text-sidebar-primary-foreground">
+                <Image
+                  src={"/symbol-conecta-wtbg-white.webp"}
+                  alt="Logo Conecta"
+                  width={24}
+                  height={24}
+                  unoptimized
+                  priority
+                />
+              </div>
+
+              <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                <span className="truncate font-bold text-neutral">Conecta</span>
+                <span className="truncate text-xs text-neutral/70">
+                  Admin Panel
+                </span>
+              </div>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
-      {/* CONTEÚDO / LINKS */}
-      <SidebarContent className="bg-primary">
+      {/* --- CONTENT --- */}
+      <SidebarContent className="bg-primary text-neutral scrollbar-none">
         <SidebarGroup>
-          <SidebarMenu className="text-neutral font-secondary">
-            {items.map((item) => {
-              const isActive =
-                pathname === item.url || pathname.startsWith(`${item.url}/`);
-
-              return (
-                <SidebarMenuItem
-                  className="transition-all rounded-sm hover:text-neutral"
-                  key={item.title}
+          <SidebarMenu>
+            {mainItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  tooltip={item.title}
+                  isActive={isActiveLink(item.url)}
+                  className="hover:bg-neutral/10 hover:text-neutral data-[active=true]:bg-neutral/20 data-[active=true]:text-neutral transition-all"
                 >
+                  <Link href={item.url}>
+                    <item.icon />
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+
+            <Collapsible
+              asChild
+              defaultOpen={isActiveLink("/admin/calendar")}
+              className="group/collapsible"
+            >
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
                   <SidebarMenuButton
-                    asChild
-                    tooltip={item.title}
-                    isActive={isActive}
-                    className={`
-                        hover:bg-neutral/10 
-                        ${isActive ? "bg-neutral/10! font-bold! text-white! transition-all!" : ""}
-                      `}
+                    tooltip="Calendários"
+                    className="hover:bg-neutral/10! hover:text-neutral! transition-all group-data-[state=open]/collapsible:text-neutral "
                   >
-                    <Link href={item.url} prefetch={true}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
+                    <Calendar />
+                    <span className="text-neutral group-data-[collapsible=icon]:hidden">
+                      Calendários
+                    </span>
+
+                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
                   </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
+                </CollapsibleTrigger>
+
+                <CollapsibleContent>
+                  <SidebarMenuSub className="border-l-neutral/20 ml-3.5">
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton
+                        asChild
+                        isActive={isActiveLink("/admin/calendar/posts")}
+                        className=" hover:bg-neutral/10 data-[active=true]:text-neutral data-[active=true]:bg-neutral/10! data-[active=true]:font-medium"
+                      >
+                        <Link href="/admin/calendar/posts">
+                          <ImageIcon
+                            color="var(--color-neutral)"
+                            className="mr-1 h-4 w-4"
+                          />
+                          <span className="text-neutral">Postagens</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton
+                        asChild
+                        isActive={isActiveLink("/admin/calendar/meetings")}
+                        className=" hover:bg-neutral/10 data-[active=true]:text-neutral data-[active=true]:bg-neutral/10!  data-[active=true]:font-medium"
+                      >
+                        <Link href="/admin/calendar/meetings">
+                          <Video
+                            color="var(--color-neutral)"
+                            className="mr-1 h-4 w-4"
+                          />
+                          <span className="text-neutral">Reuniões</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </SidebarMenuItem>
+            </Collapsible>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
 
-      {/* FOOTER / LOGOUT */}
-      <SidebarFooter className="bg-primary rounded-b-lg">
+      {/* --- FOOTER --- */}
+      <SidebarFooter className="bg-primary rounded-b-lg border-t border-neutral/10">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => logout()}
-              className="hover:bg-neutral/10 flex justify-center cursor-pointer text-neutral hover:text-red-200 transition-colors"
               tooltip="Sair"
+              className="text-neutral hover:bg-red-500/10 hover:text-red-200 transition-colors"
             >
               <LogOut />
-              <span>Sair</span>
+              <span className="group-data-[collapsible=icon]:hidden">Sair</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
