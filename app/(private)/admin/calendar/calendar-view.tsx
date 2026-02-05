@@ -328,7 +328,7 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
             {/* Lado Esquerdo: Botão de Excluir */}
             <div className="flex-1 flex justify-start">
               <Button
-                className="w-10"
+                className="w-full md:w-10"
                 variant="destructive"
                 size="icon"
                 onClick={handleDelete}
@@ -339,7 +339,7 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
             </div>
 
             {/* Lado Direito: Fechar e Confirmar */}
-            <div className="flex gap-2">
+            <div className="flex w-full md:w-auto gap-2">
               <Button variant="outline" onClick={() => setSelectedPost(null)}>
                 Fechar
               </Button>
