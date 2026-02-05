@@ -340,14 +340,18 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
 
             {/* Lado Direito: Fechar e Confirmar */}
             <div className="flex w-full md:w-auto gap-2">
-              <Button variant="outline" onClick={() => setSelectedPost(null)}>
+              <Button
+                className="hidden md:block"
+                variant="outline"
+                onClick={() => setSelectedPost(null)}
+              >
                 Fechar
               </Button>
 
               {selectedPost?.status !== "published" && (
                 <Button
                   onClick={handleConfirm}
-                  className=" bg-green-600 hover:bg-green-700"
+                  className="w-full md:w-auto bg-green-600 hover:bg-green-700"
                 >
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                   Confirmar Postagem
