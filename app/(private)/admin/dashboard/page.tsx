@@ -225,8 +225,8 @@ export default async function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-sm opacity-90">
-                Você tem 2 propostas pendentes em "Aguardando" há mais de 3
-                dias. Que tal um follow-up?
+                Você tem 2 propostas pendentes em &quot;Aguardando&quot; há mais
+                de 3 dias. Que tal um follow-up?
               </p>
               <Button
                 variant="secondary"

@@ -178,7 +178,7 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
                     </select>
                   </div>
                 </div>
-                <Button type="submit" className="w-full md:w-auto">
+                <Button type="submit" className="w-full">
                   Salvar Agendamento
                 </Button>
               </form>
@@ -328,7 +328,7 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
             {/* Lado Esquerdo: Botão de Excluir */}
             <div className="flex-1 flex justify-start">
               <Button
-                className="w-full md:w-auto"
+                className="w-full"
                 variant="destructive"
                 size="icon"
                 onClick={handleDelete}
