@@ -328,7 +328,7 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
             {/* Lado Esquerdo: Botão de Excluir */}
             <div className="flex-1 flex justify-start">
               <Button
-                className="w-full"
+                className="w-full md:w-10"
                 variant="destructive"
                 size="icon"
                 onClick={handleDelete}
@@ -340,18 +340,14 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
 
             {/* Lado Direito: Fechar e Confirmar */}
             <div className="flex gap-2">
-              <Button
-                className="w-full md:w-auto"
-                variant="outline"
-                onClick={() => setSelectedPost(null)}
-              >
+              <Button variant="outline" onClick={() => setSelectedPost(null)}>
                 Fechar
               </Button>
 
               {selectedPost?.status !== "published" && (
                 <Button
                   onClick={handleConfirm}
-                  className="w-full md:w-auto bg-green-600 hover:bg-green-700"
+                  className=" bg-green-600 hover:bg-green-700"
                 >
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                   Confirmar Postagem
