@@ -44,6 +44,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { createMeeting, deleteMeeting } from "./actions";
 
 // Note que mudei a prop de 'posts' para 'meetings'
@@ -51,9 +52,20 @@ export default function CalendarView({
   clients,
   meetings,
   initialClientId,
+  profiles,
 }: any) {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  const adminOptions =
+    profiles?.map((p: any) => ({
+      value: p.id,
+      label: p.email, // ou p.full_name se tiver
+    })) || [];
+
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
+    [],
+  );
 
   // Modais
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
@@ -178,18 +190,22 @@ export default function CalendarView({
                   />
                 </div>
                 <div>
-                  <Label>Cliente</Label>
-                  <select
-                    name="clientId"
-                    className="flex h-10 w-full rounded-md border border-input px-3 py-2 text-sm"
-                    required
-                  >
-                    {clients.map((c: any) => (
-                      <option key={c.id} value={c.id}>
-                        {c.company_name || c.email}
-                      </option>
-                    ))}
-                  </select>
+                  <Label>Participantes (Admins)</Label>
+
+                  {/* Componente Visual */}
+                  <MultiSelect
+                    options={adminOptions}
+                    selected={selectedParticipants}
+                    onChange={setSelectedParticipants}
+                    placeholder="Selecione os participantes..."
+                  />
+
+                  {/* Input Escondido para enviar os dados para o Server Action */}
+                  <input
+                    type="hidden"
+                    name="participantsJson"
+                    value={JSON.stringify(selectedParticipants)}
+                  />
                 </div>
 
                 <Button

@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Rotas que não precisam de login
 const publicRoutes = [
   { path: "/", whenAuthenticated: "redirect" },
-  { path: "/login", whenAuthenticated: "redirect" },
+  { path: "/auth/callback", whenAuthenticated: "next" },
 ] as const;
 
 const REDIRECT_WHEN_NOT_AUTHENTICATED_ROUTE = "/";

@@ -1,3 +1,4 @@
+import { createClient } from "@/utils/supabase/server";
 import { getClients } from "@/app/(private)/admin/calendar/posts/actions";
 import { getMeetings } from "./actions";
 import CalendarView from "./calendar-view";
@@ -9,18 +10,22 @@ export default async function MeetingsPage(props: {
 }) {
   const searchParams = await props.searchParams;
   const selectedClientId = searchParams.clientId || "all";
+  const supabase = await createClient();
 
-  // Busca Clientes e Reuniões em paralelo
-  const [clients, meetings] = await Promise.all([
+  const [clients, meetings, profilesResponse] = await Promise.all([
     getClients(),
     getMeetings(selectedClientId),
+    supabase.from("profiles").select("id, email, company_name"),
   ]);
+
+  const profiles = profilesResponse.data || [];
 
   return (
     <div className="flex flex-col w-full h-full gap-4">
       <CalendarView
         clients={clients}
         meetings={meetings}
+        profiles={profiles}
         initialClientId={selectedClientId}
       />
     </div>
