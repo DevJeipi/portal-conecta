@@ -13,14 +13,14 @@ import {
   isSameMonth,
   addMonths,
   subMonths,
-  parseISO, // Importante para ler a data do banco corretamente
+  parseISO,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  Video, // Ícone de vídeo
+  Video,
   Trash2,
   ExternalLink,
 } from "lucide-react";
@@ -46,8 +46,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { createMeeting, deleteMeeting } from "./actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
-// Note que mudei a prop de 'posts' para 'meetings'
 export default function CalendarView({
   clients,
   meetings,
@@ -208,12 +208,9 @@ export default function CalendarView({
                   />
                 </div>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-purple-600 hover:bg-purple-700"
-                >
-                  Salvar Agendamento
-                </Button>
+                <SubmitButton textLoading="Agendando...">
+                  Agendar Reunião
+                </SubmitButton>
               </form>
             </DialogContent>
           </Dialog>

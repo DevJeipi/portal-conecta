@@ -45,6 +45,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { createPost, confirmPost, deletePost } from "./actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default function CalendarView({ clients, posts, initialClientId }: any) {
   const router = useRouter();
@@ -349,13 +350,9 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
               </Button>
 
               {selectedPost?.status !== "published" && (
-                <Button
-                  onClick={handleConfirm}
-                  className="w-full md:w-auto bg-green-600 hover:bg-green-700"
-                >
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Confirmar Postagem
-                </Button>
+                <SubmitButton textLoading="Agendando...">
+                  Agendar Reunião
+                </SubmitButton>
               )}
             </div>
           </DialogFooter>
