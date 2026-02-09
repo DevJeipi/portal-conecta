@@ -43,6 +43,10 @@ export async function createMeeting(formData: FormData) {
   const startDateTime = new Date(`${date}T${time}:00`);
   const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000);
 
+  const formatForGoogle = (dateObj: Date) => {
+    return dateObj.toISOString().split(".")[0];
+  };
+
   // 2. Prepara emails
   const attendeesEmails: string[] = [];
 
@@ -108,8 +112,14 @@ export async function createMeeting(formData: FormData) {
         requestBody: {
           summary: title,
           description: `Agendado via Portal Conecta.`,
-          start: { dateTime: startDateTime.toISOString() },
-          end: { dateTime: endDateTime.toISOString() },
+          start: {
+            dateTime: formatForGoogle(startDateTime),
+            timeZone: "America/Sao_Paulo",
+          },
+          end: {
+            dateTime: formatForGoogle(endDateTime),
+            timeZone: "America/Sao_Paulo",
+          },
           // TRUQUE: Se for Robô, mandamos lista vazia de attendees para não dar erro
           attendees: canInvite ? googleAttendees : [],
           conferenceData: {
