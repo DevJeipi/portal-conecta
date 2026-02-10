@@ -46,6 +46,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { createMeeting, deleteMeeting } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 // Note que mudei a prop de 'posts' para 'meetings'
 export default function CalendarView({
@@ -371,6 +372,10 @@ export default function CalendarView({
                 <Trash2 size={16} />
               </Button>
             </div>
+
+            <SubmitButton textLoading="Agendando...">
+              Agendar Reunião
+            </SubmitButton>
 
             <div className="flex w-full md:w-auto gap-2">
               <Button

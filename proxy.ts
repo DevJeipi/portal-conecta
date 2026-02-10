@@ -12,12 +12,8 @@ export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const publicRoute = publicRoutes.find((route) => route.path === path);
 
-  // AQUI ESTÁ A CORREÇÃO:
-  // Não buscamos 'token' nem 'sb-auth-token'.
-  // Confiamos no cookie que VOCÊ criou no actions.ts
   const userRole = request.cookies.get("user_role")?.value;
 
-  // 1. Se NÃO tem role e tenta acessar página privada -> Chuta para Login
   if (!userRole && !publicRoute) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = REDIRECT_WHEN_NOT_AUTHENTICATED_ROUTE;
@@ -28,9 +24,7 @@ export function proxy(request: NextRequest) {
     return response;
   }
 
-  // 2. Se TEM role (está logado)
   if (userRole) {
-    // Se tentar acessar login/home, manda para o dashboard correto
     if (publicRoute && publicRoute.whenAuthenticated === "redirect") {
       const redirectUrl = request.nextUrl.clone();
       if (userRole === "admin") {
@@ -41,7 +35,6 @@ export function proxy(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    // Proteção de Rota Admin (Cliente tentando entrar em /admin)
     if (path.startsWith("/admin") && userRole !== "admin") {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/dashboard";

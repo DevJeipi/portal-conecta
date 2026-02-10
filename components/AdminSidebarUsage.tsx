@@ -32,6 +32,7 @@ import {
   ChevronRight,
   ImageIcon,
   Video,
+  Handshake,
 } from "lucide-react";
 
 // Itens principais
@@ -40,6 +41,11 @@ const mainItems = [
     title: "Início",
     url: "/admin/dashboard",
     icon: Home,
+  },
+  {
+    title: "Pipeline",
+    url: "/admin/pipeline",
+    icon: Handshake,
   },
 ];
 
