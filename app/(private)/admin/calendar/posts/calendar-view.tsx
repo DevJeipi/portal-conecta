@@ -179,9 +179,9 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
                     </select>
                   </div>
                 </div>
-                <Button type="submit" className="w-full">
+                <SubmitButton textLoading="Salvando..." className="w-full">
                   Salvar Agendamento
-                </Button>
+                </SubmitButton>
               </form>
             </DialogContent>
           </Dialog>
@@ -350,9 +350,13 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
               </Button>
 
               {selectedPost?.status !== "published" && (
-                <SubmitButton textLoading="Publicando...">
-                  Criar Postagem
-                </SubmitButton>
+                <Button
+                  onClick={handleConfirm}
+                  className="w-full md:w-auto bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Confirmar Postagem
+                </Button>
               )}
             </div>
           </DialogFooter>
