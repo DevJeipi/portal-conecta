@@ -8,23 +8,45 @@ import { google } from "googleapis";
 export async function getMeetings(clientId?: string) {
   const supabase = await createClient();
 
-  let query = supabase.from("meetings").select(`
-      *,
-      profiles (company_name, email)
-    `);
+  let query = supabase.from("meetings").select("*");
 
   if (clientId && clientId !== "all") {
-    query = query.eq("client_id", clientId);
+    query = query.eq("company_id", clientId);
   }
 
-  const { data, error } = await query;
+  const { data: meetings, error } = await query;
 
   if (error) {
     console.error("Erro ao buscar reuniões:", error);
     return [];
   }
 
-  return data || [];
+  if (!meetings || meetings.length === 0) return [];
+
+  // Busca participantes de todas as reuniões
+  const meetingIds = meetings.map((m: any) => m.id);
+
+  const { data: participants } = await supabase
+    .from("meeting_participants")
+    .select("meeting_id, profile_id, profiles:profile_id (id, email)")
+    .in("meeting_id", meetingIds);
+
+  // Agrupa participantes por meeting_id
+  const participantsByMeeting: Record<string, any[]> = {};
+  if (participants) {
+    for (const p of participants) {
+      if (!participantsByMeeting[p.meeting_id]) {
+        participantsByMeeting[p.meeting_id] = [];
+      }
+      participantsByMeeting[p.meeting_id].push(p);
+    }
+  }
+
+  // Junta participantes nas reuniões
+  return meetings.map((m: any) => ({
+    ...m,
+    meeting_participants: participantsByMeeting[m.id] || [],
+  }));
 }
 
 // --- CRIAR REUNIÃO (Com Integração Google Service Account) ---
@@ -139,20 +161,22 @@ export async function createMeeting(formData: FormData) {
     // Segue para salvar no banco mesmo com erro
   }
 
-  // 4. Salvar no Supabase (Mantenha seu código de insert igual)
+  // 4. Salvar no Supabase
   const { data: meetingData, error } = await supabase
     .from("meetings")
     .insert({
       title,
       start_time: startDateTime.toISOString(),
-      meeting_link: googleEventLink,
-      status: "scheduled",
-      client_id: null,
+      end_time: endDateTime.toISOString(),
+      meeting_url: googleEventLink || null,
     })
     .select()
     .single();
 
-  if (error) throw new Error("Erro ao salvar reunião no banco");
+  if (error) {
+    console.error("Erro ao salvar reunião no banco:", error);
+    throw new Error(`Erro ao salvar reunião: ${error.message}`);
+  }
 
   // 5. Salvar Participantes
   if (participantIds.length > 0 && meetingData) {

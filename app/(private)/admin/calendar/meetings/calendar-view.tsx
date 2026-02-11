@@ -11,6 +11,7 @@ import {
   eachDayOfInterval,
   isSameDay,
   isSameMonth,
+  isToday,
   addMonths,
   subMonths,
   parseISO,
@@ -23,6 +24,7 @@ import {
   Video,
   Trash2,
   ExternalLink,
+  Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -60,7 +62,7 @@ export default function CalendarView({
   const adminOptions =
     profiles?.map((p: any) => ({
       value: p.id,
-      label: p.email, // ou p.full_name se tiver
+      label: p.email,
     })) || [];
 
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
@@ -78,6 +80,12 @@ export default function CalendarView({
   const endDate = endOfWeek(monthEnd);
   const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
   const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+  // Reuniões de Hoje (para sidebar)
+  const today = new Date();
+  const todayMeetings = meetings.filter((meeting: any) =>
+    isSameDay(parseISO(meeting.start_time), today),
+  );
 
   // Ações
   const handleClientChange = (value: string) => {
@@ -141,7 +149,7 @@ export default function CalendarView({
               <SelectItem value="all">Todos os Clientes</SelectItem>
               {clients.map((c: any) => (
                 <SelectItem key={c.id} value={c.id}>
-                  {c.company_name || c.email}
+                  {c.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -169,19 +177,16 @@ export default function CalendarView({
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Data */}
                   <div>
                     <Label>Data</Label>
                     <Input type="date" name="date" required />
                   </div>
-                  {/* Hora (Novo) */}
                   <div>
                     <Label>Horário</Label>
                     <Input type="time" name="time" required />
                   </div>
                 </div>
 
-                {/* Link (Novo) */}
                 <div>
                   <Label>Link da Sala (Meet/Zoom)</Label>
                   <Input
@@ -191,16 +196,12 @@ export default function CalendarView({
                 </div>
                 <div>
                   <Label>Participantes (Admins)</Label>
-
-                  {/* Componente Visual */}
                   <MultiSelect
                     options={adminOptions}
                     selected={selectedParticipants}
                     onChange={setSelectedParticipants}
                     placeholder="Selecione os participantes..."
                   />
-
-                  {/* Input Escondido para enviar os dados para o Server Action */}
                   <input
                     type="hidden"
                     name="participantsJson"
@@ -217,75 +218,138 @@ export default function CalendarView({
         </div>
       </div>
 
-      {/* --- GRID DO CALENDÁRIO --- */}
-      <div className="flex-1 border rounded-lg shadow-sm bg-white flex flex-col overflow-hidden relative">
-        <div className="overflow-x-auto flex-1 flex flex-col">
-          <div className="min-w-[800px] flex-1 flex flex-col">
-            <div className="grid grid-cols-7 border-b bg-neutral-50 shrink-0">
-              {weekDays.map((day) => (
-                <div
-                  key={day}
-                  className="py-2 text-center text-sm font-medium text-neutral-500 uppercase tracking-wider"
-                >
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            {/* Células dos dias */}
-            <div className="grid grid-cols-7 flex-1 auto-rows-fr">
-              {calendarDays.map((day) => {
-                // Filtra as reuniões do dia (usando start_time)
-                const dayMeetings = meetings.filter((meeting: any) =>
-                  isSameDay(parseISO(meeting.start_time), day),
-                );
-
-                const isCurrentMonth = isSameMonth(day, currentDate);
-
-                return (
+      {/* --- LAYOUT: CALENDÁRIO + SIDEBAR --- */}
+      <div className="flex flex-1 gap-4 overflow-hidden">
+        {/* --- GRID DO CALENDÁRIO --- */}
+        <div className="flex-1 border rounded-lg shadow-sm bg-white flex flex-col overflow-hidden relative">
+          <div className="overflow-x-auto flex-1 flex flex-col">
+            <div className="min-w-[800px] flex-1 flex flex-col">
+              <div className="grid grid-cols-7 border-b bg-neutral-50 shrink-0">
+                {weekDays.map((day) => (
                   <div
-                    key={day.toString()}
-                    className={`
-                    min-h-[100px]
-                    border-b border-r p-2 transition-colors
-                    ${!isCurrentMonth ? "bg-neutral-50/50" : "bg-white"}
-                    hover:bg-neutral-50
-                `}
+                    key={day}
+                    className="py-2 text-center text-sm font-medium text-neutral-500 uppercase tracking-wider"
                   >
-                    <div
-                      className={`text-right text-sm mb-2 ${!isCurrentMonth ? "text-neutral-300" : "text-neutral-600 font-medium"}`}
-                    >
-                      {format(day, "d")}
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      {dayMeetings.map((meeting: any) => {
-                        // Formata a hora (ex: 14:30)
-                        const timeString = format(
-                          parseISO(meeting.start_time),
-                          "HH:mm",
-                        );
-
-                        return (
-                          <button
-                            key={meeting.id}
-                            onClick={() => setSelectedMeeting(meeting)}
-                            className="
-                                    text-xs text-left border rounded px-2 py-1.5 truncate shadow-sm transition-all
-                                    flex items-center gap-1.5
-                                    bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100
-                                "
-                          >
-                            <Video size={12} />
-                            <span className="font-bold">{timeString}</span>
-                            <span className="truncate">{meeting.title}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {day}
                   </div>
+                ))}
+              </div>
+
+              {/* Células dos dias */}
+              <div className="grid grid-cols-7 flex-1 auto-rows-fr">
+                {calendarDays.map((day) => {
+                  const dayMeetings = meetings.filter((meeting: any) =>
+                    isSameDay(parseISO(meeting.start_time), day),
+                  );
+
+                  const isCurrentMonth = isSameMonth(day, currentDate);
+                  const isDayToday = isToday(day);
+
+                  return (
+                    <div
+                      key={day.toString()}
+                      className={`
+                        min-h-[100px]
+                        border-b border-r p-2 transition-colors
+                        ${!isCurrentMonth ? "bg-neutral-50/50" : "bg-white"}
+                        ${isDayToday ? "bg-purple-50/40" : ""}
+                        hover:bg-neutral-50
+                      `}
+                    >
+                      <div className="flex items-center justify-end mb-2">
+                        <span
+                          className={`text-sm inline-flex items-center justify-center ${
+                            isDayToday
+                              ? "bg-purple-600 text-white rounded-full w-7 h-7 font-bold"
+                              : !isCurrentMonth
+                                ? "text-neutral-300"
+                                : "text-neutral-600 font-medium"
+                          }`}
+                        >
+                          {format(day, "d")}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        {dayMeetings.map((meeting: any) => {
+                          const timeString = format(
+                            parseISO(meeting.start_time),
+                            "HH:mm",
+                          );
+
+                          return (
+                            <button
+                              key={meeting.id}
+                              onClick={() => setSelectedMeeting(meeting)}
+                              className="
+                                text-xs text-left border rounded px-2 py-1.5 truncate shadow-sm transition-all
+                                flex items-center gap-1.5
+                                bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100
+                              "
+                            >
+                              <Video size={12} />
+                              <span className="font-bold">{timeString}</span>
+                              <span className="truncate">{meeting.title}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* --- SIDEBAR: AGENDA DE HOJE --- */}
+        <div className="hidden lg:flex flex-col w-80 shrink-0">
+          <h2 className="text-lg font-semibold text-neutral-800 mb-4">
+            Agenda de Hoje
+          </h2>
+          <div className="flex-1 overflow-y-auto space-y-3">
+            {todayMeetings.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhuma reunião agendada para hoje.
+              </p>
+            ) : (
+              todayMeetings.map((meeting: any) => {
+                const timeString = format(
+                  parseISO(meeting.start_time),
+                  "HH:mm",
                 );
-              })}
+                return (
+                  <button
+                    key={meeting.id}
+                    onClick={() => setSelectedMeeting(meeting)}
+                    className="w-full text-left rounded-lg border border-l-4 border-l-purple-500 border-purple-200 bg-white p-3 transition-all hover:shadow-md"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Video size={14} className="text-purple-600" />
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] px-1.5 py-0 bg-purple-100 text-purple-700"
+                      >
+                        reunião
+                      </Badge>
+                    </div>
+                    <h3 className="font-semibold text-sm text-neutral-800 truncate">
+                      {meeting.title}
+                    </h3>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {/* Legenda */}
+          <div className="mt-4 pt-4 border-t">
+            <p className="text-sm font-medium text-neutral-600 mb-2">Legenda</p>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-purple-500" />
+                <span className="text-xs text-neutral-600">Reuniões</span>
+              </div>
             </div>
           </div>
         </div>
@@ -325,32 +389,42 @@ export default function CalendarView({
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right text-muted-foreground">
-                  Cliente
-                </Label>
-                <div className="col-span-3">
-                  <Badge variant="outline">
-                    {selectedMeeting.profiles?.company_name || "Cliente"}
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Exibir Link se existir */}
-              {selectedMeeting.meeting_link && (
+              {selectedMeeting.meeting_url && (
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right text-muted-foreground">
                     Link
                   </Label>
                   <div className="col-span-3">
                     <a
-                      href={selectedMeeting.meeting_link}
+                      href={selectedMeeting.meeting_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline flex items-center gap-1 text-sm"
                     >
                       Entrar na sala <ExternalLink size={12} />
                     </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Participantes */}
+              {selectedMeeting.meeting_participants?.length > 0 && (
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label className="text-right text-muted-foreground">
+                    Participantes
+                  </Label>
+                  <div className="col-span-3 flex flex-col gap-1.5">
+                    {selectedMeeting.meeting_participants.map(
+                      (p: any, i: number) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          <Users size={14} className="text-purple-500" />
+                          <span>{p.profiles?.email || "Sem email"}</span>
+                        </div>
+                      ),
+                    )}
                   </div>
                 </div>
               )}
@@ -368,10 +442,6 @@ export default function CalendarView({
                 <Trash2 size={16} />
               </Button>
             </div>
-
-            <SubmitButton textLoading="Agendando...">
-              Agendar Reunião
-            </SubmitButton>
 
             <div className="flex w-full md:w-auto gap-2">
               <Button
