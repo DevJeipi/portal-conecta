@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createRouteClient } from "@/utils/supabase/route";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
 
   if (code) {
-    const supabase = await createClient();
+    const supabase = await createRouteClient();
 
     // 1. Troca o código pela sessão (Login acontece aqui)
     const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -68,6 +68,7 @@ export async function GET(request: Request) {
         path: "/",
         httpOnly: true,
         sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
         maxAge: 60 * 60 * 24 * 7, // 1 semana
       });
 
@@ -76,5 +77,5 @@ export async function GET(request: Request) {
   }
 
   // Se der erro no login
-  return NextResponse.redirect(`${origin}/login?error=auth-code-error`);
+  return NextResponse.redirect(`${origin}/?error=auth-code-error`);
 }
