@@ -12,6 +12,7 @@ import {
   isSameDay,
   isSameMonth,
   isToday,
+  isWithinInterval,
   addMonths,
   subMonths,
 } from "date-fns";
@@ -25,6 +26,8 @@ import {
   Trash2,
   Pencil,
   Share2,
+  MessageCircle,
+  Copy,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -58,6 +61,9 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
   const [isNewPostOpen, setIsNewPostOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareMessage, setShareMessage] = useState("");
+  const [isCopied, setIsCopied] = useState(false);
 
   // Geração do Calendário
   const monthStart = startOfMonth(currentDate);
@@ -72,11 +78,86 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
   const todayPosts = posts.filter((post: any) =>
     isSameDay(new Date(post.post_date), today),
   );
+  const monthPosts = posts
+    .filter((post: any) =>
+      isWithinInterval(new Date(post.post_date), {
+        start: monthStart,
+        end: monthEnd,
+      }),
+    )
+    .sort(
+      (a: any, b: any) =>
+        new Date(a.post_date).getTime() - new Date(b.post_date).getTime(),
+    );
 
   // Ações
   const handleClientChange = (value: string) => {
     router.push(`/admin/calendar/posts?clientId=${value}`);
   };
+
+  function getCompanyName(post: any) {
+    return post.companies?.name || post.companies?.company_name || "Cliente";
+  }
+
+  function buildMonthMessage() {
+    if (monthPosts.length === 0) {
+      alert("Nenhum post encontrado para este mês.");
+      return null;
+    }
+
+    const selectedClient =
+      initialClientId === "all"
+        ? "Todos os clientes"
+        : clients.find((client: any) => client.id === initialClientId)
+            ?.company_name ||
+          clients.find((client: any) => client.id === initialClientId)?.name ||
+          "Cliente selecionado";
+
+    const lines: string[] = [
+      `📅 Calendário de posts - ${format(currentDate, "MMMM/yyyy", { locale: ptBR })}`,
+      `👤 Cliente: ${selectedClient}`,
+      "",
+    ];
+
+    let currentDay = "";
+    monthPosts.forEach((post: any) => {
+      const postDate = new Date(post.post_date);
+      const dayLabel = format(postDate, "dd/MM (EEEE)", { locale: ptBR });
+      const statusLabel = post.status === "posted" ? "publicado" : "agendado";
+
+      if (dayLabel !== currentDay) {
+        currentDay = dayLabel;
+        lines.push(`*${dayLabel}*`);
+      }
+
+      lines.push(
+        `- ${format(postDate, "HH:mm")} | ${post.title} | ${getCompanyName(post)} | ${statusLabel}`,
+      );
+    });
+
+    return lines.join("\n");
+  }
+
+  function handleOpenShareModal() {
+    const message = buildMonthMessage();
+    if (!message) return;
+
+    setShareMessage(message);
+    setIsCopied(false);
+    setIsShareModalOpen(true);
+  }
+
+  async function handleCopyShareMessage() {
+    if (!shareMessage) return;
+
+    try {
+      await navigator.clipboard.writeText(shareMessage);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch {
+      alert("Não foi possível copiar automaticamente. Copie manualmente.");
+    }
+  }
 
   async function handleCreate(formData: FormData) {
     await createPost(formData);
@@ -162,6 +243,15 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
               ))}
             </SelectContent>
           </Select>
+
+          <Button
+            variant="outline"
+            className="w-full md:w-auto"
+            onClick={handleOpenShareModal}
+          >
+            <MessageCircle size={16} className="mr-2" />
+            Gerar mensagem WhatsApp
+          </Button>
 
           {/* Botão Novo Post */}
           <Dialog open={isNewPostOpen} onOpenChange={setIsNewPostOpen}>
@@ -382,6 +472,30 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
           </div>
         </div>
       </div>
+
+      <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mensagem do calendário</DialogTitle>
+            <DialogDescription>
+              Copie o texto abaixo e envie no WhatsApp.
+            </DialogDescription>
+          </DialogHeader>
+
+          <textarea
+            value={shareMessage}
+            readOnly
+            className="flex min-h-[260px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono ring-offset-background"
+          />
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleCopyShareMessage}>
+              <Copy size={16} className="mr-2" />
+              {isCopied ? "Copiado!" : "Copiar mensagem"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* --- MODAL DE DETALHES / EDIÇÃO DO POST --- */}
       <Dialog open={!!selectedPost} onOpenChange={handleCloseDetails}>
