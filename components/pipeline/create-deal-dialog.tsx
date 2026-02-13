@@ -32,14 +32,22 @@ export function CreateDealDialog() {
       form.reset();
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao criar negociação.");
+      setError(
+        err instanceof Error ? err.message : "Erro ao criar negociação.",
+      );
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); setError(null); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        setError(null);
+      }}
+    >
       <DialogTrigger asChild>
-        <Button>
+        <Button className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" /> Nova Negociação
         </Button>
       </DialogTrigger>
@@ -91,6 +99,22 @@ export function CreateDealDialog() {
             />
             <p className="text-[10px] text-muted-foreground">
               Usado para criar acesso futuro.
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="deal_type">Tipo do Deal</Label>
+            <select
+              id="deal_type"
+              name="deal_type"
+              defaultValue="one_off"
+              className="border-input bg-background ring-offset-background focus-visible:ring-ring h-9 w-full rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+            >
+              <option value="one_off">One-off</option>
+              <option value="recurring">Recorrente</option>
+            </select>
+            <p className="text-[10px] text-muted-foreground">
+              Define se a receita sera recorrente ou pontual.
             </p>
           </div>
 

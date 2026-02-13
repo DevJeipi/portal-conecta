@@ -1,5 +1,25 @@
+import { Metadata, Viewport } from "next";
 import { Unbounded, DM_Sans } from "next/font/google";
 import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "Portal Conecta",
+  description: "Gestão Inteligente",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Conecta",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#f2f2f2",
+};
 
 const unbounded = Unbounded({
   variable: "--font-unbounded",

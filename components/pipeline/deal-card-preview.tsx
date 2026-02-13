@@ -1,47 +1,31 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Deal } from "@/app/(private)/admin/pipeline/constants";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, GripVertical } from "lucide-react";
-import { differenceInDays } from "date-fns";
-import { Deal } from "@/app/(private)/admin/pipeline/actions";
 
-/** Versão do card só para o DragOverlay (sem useDraggable), para o card ficar sempre por cima ao arrastar */
+const formatBRL = (value: number) =>
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
+
+/** Versão do card para DragOverlay — sem useDraggable, renderizado por cima de tudo ao arrastar */
 export function DealCardPreview({ deal }: { deal: Deal }) {
-  const daysStagnant = differenceInDays(new Date(), new Date(deal.updated_at));
-  const isStagnant =
-    daysStagnant > 15 && deal.status !== "won" && deal.status !== "lost";
-
   return (
-    <div className="cursor-grabbing shadow-xl min-w-[200px]">
-      <Card
-        className={`shadow-lg border-2 ${isStagnant ? "border-red-300 bg-red-50" : ""}`}
-      >
-        <CardHeader className="p-3 pb-0 flex flex-row items-start justify-between space-y-0">
-          <div className="space-y-1">
-            <CardTitle className="text-sm font-medium leading-none">
-              {deal.title}
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">{deal.company_name}</p>
-          </div>
-          <GripVertical className="h-4 w-4 text-muted-foreground/50" />
-        </CardHeader>
-        <CardContent className="p-3 pt-2">
-          <div className="flex justify-between items-center mt-2">
-            <span className="text-sm font-bold text-green-700">
-              {new Intl.NumberFormat("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              }).format(deal.value)}
-            </span>
-            {isStagnant && (
-              <Badge variant="destructive" className="text-[10px] h-5 px-1">
-                <AlertCircle className="w-3 h-3 mr-1" /> {daysStagnant}d parado
-              </Badge>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+    <div className="cursor-grabbing rounded-lg border-2 border-primary/30 bg-card p-4 shadow-xl w-[200px]">
+      <h4 className="text-sm font-medium text-foreground leading-tight">
+        {deal.company_name || deal.title}
+      </h4>
+
+      <div className="mt-2">
+        <Badge variant="secondary" className="text-[10px]">
+          {deal.deal_type === "recurring" ? "Recorrente" : "One-off"}
+        </Badge>
+      </div>
+
+      <p className="text-sm text-muted-foreground mt-1.5 font-medium">
+        {formatBRL(deal.value)}
+      </p>
     </div>
   );
 }

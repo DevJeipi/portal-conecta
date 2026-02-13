@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -17,223 +18,309 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Users,
-  Briefcase,
   AlertCircle,
-  Plus,
   ArrowUpRight,
+  Calendar,
+  DollarSign,
+  Target,
+  Video,
+  Handshake,
 } from "lucide-react";
-import { getDashboardStats } from "@/app/(private)/admin/dashboard/actions";
+import { getDashboardStats } from "./actions";
+import { STAGES } from "../pipeline/constants";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const stageInfo = (stageId: string) =>
+  STAGES.find((s) => s.id === stageId) ?? { title: stageId, dotColor: "bg-gray-400" };
 
 export default async function AdminDashboard() {
   const stats = await getDashboardStats();
 
-  // Dados Fakes atualizados para o contexto de CRM / Comercial
-  const deals = [
-    {
-      id: 1,
-      client: "Luvas Rei",
-      status: "negotiating", // Em negociação
-      last_contact: "12/02",
-    },
-    {
-      id: 2,
-      client: "O Pace Financeiro",
-      status: "waiting", // Aguardando
-      last_contact: "10/02",
-    },
-    {
-      id: 3,
-      client: "J&S Metais",
-      status: "closed", // Fechado
-      last_contact: "05/02",
-    },
-    {
-      id: 4,
-      client: "Dr. Marcos",
-      status: "to_contact", // À contatar
-      last_contact: "Hoje",
-    },
-  ];
+  const activeStages = ["new", "discovery", "proposal", "negotiation"];
+  const pipelineDeals = stats.deals.filter((d) => activeStages.includes(d.stage));
+  const pipelineTotal = pipelineDeals.reduce((s, d) => s + Number(d.value || 0), 0);
 
-  // Helper para renderizar o status visualmente
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "to_contact":
-        return { label: "À Contatar", color: "bg-blue-500 hover:bg-blue-600" };
-      case "waiting":
-        return {
-          label: "Aguardando",
-          color: "bg-yellow-500 hover:bg-yellow-600",
-        };
-      case "negotiating":
-        return {
-          label: "Em Negociação",
-          color: "bg-purple-500 hover:bg-purple-600",
-        };
-      case "closed":
-        return { label: "Fechado", color: "bg-green-500 hover:bg-green-600" };
-      default:
-        return { label: status, color: "bg-gray-500" };
-    }
-  };
+  // Progresso da meta
+  const goalProgress =
+    stats.currentMonthGoal > 0
+      ? Math.min(Math.round((stats.currentMonthRevenue / stats.currentMonthGoal) * 100), 100)
+      : 0;
 
   return (
-    // AJUSTE MOBILE 1: min-h-screen ao invés de h-screen para permitir scroll
-    <div className="w-full min-h-screen flex flex-col gap-6 p-2 mt-4 pb-20">
-      {/* 1. CABEÇALHO E AÇÕES */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-800">
-            Dashboard
-          </h1>
-          <p className="text-muted-foreground">
+    <div className="w-full min-h-screen flex flex-col gap-6 p-6 pb-20">
+      {/* Cabeçalho */}
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground text-sm">
             Visão geral da agência e pipeline comercial.
           </p>
         </div>
+        <p className="text-sm text-muted-foreground capitalize">
+          {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+        </p>
       </div>
 
-      {/* 2. KPIs (Grid ajustado para empilhar no mobile automaticamente) */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+      {/* KPIs */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+        {/* Posts urgentes */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Próximas 48h</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {stats.urgentPosts}
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardDescription className="text-sm">Próximas 48h</CardDescription>
+            <div className="rounded-md bg-red-500/10 p-2">
+              <AlertCircle className="h-4 w-4 text-red-500" />
             </div>
-            <p className="text-xs text-muted-foreground">Posts a publicar</p>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-red-600">{stats.urgentPosts}</p>
+            <p className="text-xs text-muted-foreground mt-1">Posts a publicar</p>
           </CardContent>
         </Card>
 
+        {/* Pipeline ativo */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Clientes Ativos
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardDescription className="text-sm">Pipeline ativo</CardDescription>
+            <div className="rounded-md bg-sky-500/10 p-2">
+              <Handshake className="h-4 w-4 text-sky-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">+2 novos este mês</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Faturamento</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R$ 134k</div>
-            <p className="text-xs text-muted-foreground">
-              Previsão de fechamento
+            <p className="text-2xl font-bold">{pipelineDeals.length}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {formatCurrency(pipelineTotal)} em negociação
             </p>
           </CardContent>
         </Card>
+
+        {/* Faturamento atual */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardDescription className="text-sm">Faturamento do mês</CardDescription>
+            <div className="rounded-md bg-emerald-500/10 p-2">
+              <DollarSign className="h-4 w-4 text-emerald-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{formatCurrency(stats.currentMonthRevenue)}</p>
+            <p className="text-xs text-muted-foreground mt-1">Deals ganhos neste mês</p>
+          </CardContent>
+        </Card>
+
+        {/* Meta do mês */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardDescription className="text-sm">Meta do mês</CardDescription>
+            <div className="rounded-md bg-primary/10 p-2">
+              <Target className="h-4 w-4 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">{formatCurrency(stats.currentMonthGoal)}</p>
+            <div className="mt-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                <span>{goalProgress}% atingido</span>
+                <span>{formatCurrency(stats.currentMonthRevenue)} / {formatCurrency(stats.currentMonthGoal)}</span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${goalProgress}%` }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* 3. ÁREA PRINCIPAL */}
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-7">
-        {/* TABELA COMERCIAL (Ocupa espaço maior no desktop) */}
-        <Card className="col-span-1 md:col-span-4 lg:col-span-5">
+      {/* Área principal */}
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-7">
+        {/* Pipeline Comercial (real) */}
+        <Card className="lg:col-span-4">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Pipeline Comercial</CardTitle>
               <CardDescription>
-                Acompanhamento de leads e negociações.
+                {pipelineDeals.length} negociação{pipelineDeals.length !== 1 ? "ões" : ""} em andamento
               </CardDescription>
             </div>
-            <Button variant="ghost" size="sm" className="gap-1">
-              Ver CRM <ArrowUpRight size={16} />
-            </Button>
+            <Link href="/admin/pipeline">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+                Ver pipeline <ArrowUpRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
           </CardHeader>
           <CardContent>
-            {/* AJUSTE MOBILE 2: Wrapper para scroll horizontal na tabela */}
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Lead / Cliente</TableHead>
-                    <TableHead>Status</TableHead>
-                    {/* Esconde data em telas muito pequenas */}
-                    <TableHead className="text-right hidden sm:table-cell">
-                      Últ. Contato
-                    </TableHead>
+                    <TableHead>Etapa</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">Valor</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {deals.map((deal) => {
-                    const badgeInfo = getStatusBadge(deal.status);
-
+                  {pipelineDeals.slice(0, 8).map((deal) => {
+                    const stage = stageInfo(deal.stage);
                     return (
                       <TableRow key={deal.id}>
-                        <TableCell className="font-medium flex items-center gap-2 whitespace-nowrap">
-                          <Avatar className="h-6 w-6 hidden sm:flex">
-                            <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                              {deal.client.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          {deal.client}
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-7 w-7 hidden sm:flex">
+                              <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
+                                {(deal.company_name || deal.title)
+                                  .substring(0, 2)
+                                  .toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium">
+                                {deal.company_name || deal.title}
+                              </p>
+                              {deal.contact_name && (
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {deal.contact_name}
+                                </p>
+                              )}
+                            </div>
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            className={`${badgeInfo.color} hover:${badgeInfo.color} text-white whitespace-nowrap`}
-                          >
-                            {badgeInfo.label}
+                          <Badge variant="secondary" className="gap-1.5 whitespace-nowrap">
+                            <span className={`h-1.5 w-1.5 rounded-full ${stage.dotColor}`} />
+                            {stage.title}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right hidden sm:table-cell">
-                          {deal.last_contact}
+                        <TableCell className="text-right hidden sm:table-cell font-medium">
+                          {formatCurrency(Number(deal.value || 0))}
                         </TableCell>
                       </TableRow>
                     );
                   })}
+                  {pipelineDeals.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} className="h-20 text-center text-muted-foreground">
+                        Nenhuma negociação em andamento.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
           </CardContent>
         </Card>
 
-        {/* ATALHOS RÁPIDOS (Coluna lateral) */}
-        <div className="col-span-1 md:col-span-3 lg:col-span-2 flex flex-col gap-6">
+        {/* Coluna lateral */}
+        <div className="lg:col-span-3 flex flex-col gap-6">
+          {/* Próximas Reuniões */}
           <Card>
-            <CardHeader>
-              <CardTitle>Ações Rápidas</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Próximas reuniões</CardTitle>
+                <CardDescription>Agenda dos próximos dias</CardDescription>
+              </div>
+              <Link href="/admin/calendar/meetings">
+                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+                  Ver todas <ArrowUpRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
             </CardHeader>
-            <CardContent className="grid gap-2">
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left"
-              >
-                <Plus className="mr-2 h-4 w-4" /> Novo Lead
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left"
-              >
-                <Users className="mr-2 h-4 w-4" /> Equipe
-              </Button>
+            <CardContent>
+              {stats.upcomingMeetings.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <Calendar className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma reunião agendada.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {stats.upcomingMeetings.map((meeting) => {
+                    const meetingDate = new Date(meeting.start_time);
+                    const isToday =
+                      meetingDate.toDateString() === new Date().toDateString();
+
+                    return (
+                      <div
+                        key={meeting.id}
+                        className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                          <Video className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">
+                            {meeting.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {isToday ? (
+                              <span className="text-primary font-medium">Hoje</span>
+                            ) : (
+                              format(meetingDate, "dd/MM", { locale: ptBR })
+                            )}
+                            {" às "}
+                            {format(meetingDate, "HH:mm")}
+                          </p>
+                        </div>
+                        {meeting.meeting_url && (
+                          <a
+                            href={meeting.meeting_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Button variant="outline" size="sm" className="shrink-0">
+                              Entrar
+                            </Button>
+                          </a>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          <Card className="flex-1 bg-primary text-primary-foreground">
+          {/* Resumo por etapa */}
+          <Card>
             <CardHeader>
-              <CardTitle className="text-white">Foco do Dia</CardTitle>
+              <CardTitle>Resumo do pipeline</CardTitle>
+              <CardDescription>Deals por etapa</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm opacity-90">
-                Você tem 2 propostas pendentes em &quot;Aguardando&quot; há mais
-                de 3 dias. Que tal um follow-up?
-              </p>
-              <Button
-                variant="secondary"
-                className="mt-4 w-full text-primary hover:bg-white"
-              >
-                Ver Propostas
-              </Button>
+              <div className="space-y-3">
+                {STAGES.filter((s) => activeStages.includes(s.id)).map((stage) => {
+                  const stageDeals = stats.deals.filter((d) => d.stage === stage.id);
+                  const stageTotal = stageDeals.reduce(
+                    (s, d) => s + Number(d.value || 0),
+                    0,
+                  );
+
+                  return (
+                    <div key={stage.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2 w-2 rounded-full ${stage.dotColor}`} />
+                        <span className="text-sm">{stage.title}</span>
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {stageDeals.length}
+                        </Badge>
+                      </div>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {formatCurrency(stageTotal)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -1,49 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
   DragStartEvent,
-  useDroppable,
   DragOverlay,
+  useDroppable,
+  PointerSensor,
+  useSensor,
+  useSensors,
 } from "@dnd-kit/core";
-import {
-  Deal,
-  updateDealStatus,
-} from "@/app/(private)/admin/pipeline/actions";
+import { Deal, STAGES } from "@/app/(private)/admin/pipeline/constants";
+import { updateDealStage } from "@/app/(private)/admin/pipeline/actions";
 import { DealCard } from "./deal-card";
 import { DealCardPreview } from "./deal-card-preview";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { DealDetailsDialog } from "./deal-details-dialog";
+import { WonDialog } from "./won-dialog";
 
-// Configuração das Colunas
-const COLUMNS = [
-  { id: "new", title: "Novos Leads", color: "bg-gray-100" },
-  { id: "contacted", title: "Em Contato", color: "bg-blue-50" },
-  { id: "proposal", title: "Proposta", color: "bg-yellow-50" },
-  { id: "negotiation", title: "Negociação", color: "bg-orange-50" },
-  { id: "won", title: "Ganho 🎉", color: "bg-green-100" },
-  { id: "lost", title: "Perdido", color: "bg-red-50" },
-];
+const formatBRL = (value: number) =>
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
 
 export function PipelineBoard({ initialDeals }: { initialDeals: Deal[] }) {
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
-
-  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [wonDeal, setWonDeal] = useState<Deal | null>(null);
+  const [wonOpen, setWonOpen] = useState(false);
+  const didDragRef = useRef(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+  );
 
   function handleDragStart(event: DragStartEvent) {
+    didDragRef.current = true;
     const deal = event.active.data.current as Deal;
     setActiveDeal(deal ?? null);
   }
@@ -52,157 +49,151 @@ export function PipelineBoard({ initialDeals }: { initialDeals: Deal[] }) {
     const { active, over } = event;
     setActiveDeal(null);
 
+    setTimeout(() => {
+      didDragRef.current = false;
+    }, 150);
+
     if (!over) return;
 
     const dealId = active.id as string;
-    const newStatus = over.id as Deal["status"];
+    const newStage = over.id as string;
     const currentDeal = active.data.current as Deal;
 
-    if (currentDeal.status === newStatus) return;
+    if (currentDeal.stage === newStage) return;
 
+    // Atualização otimista
     setDeals((prev) =>
       prev.map((deal) =>
-        deal.id === dealId
-          ? { ...deal, status: newStatus, updated_at: new Date().toISOString() }
-          : deal,
+        deal.id === dealId ? { ...deal, stage: newStage } : deal,
       ),
     );
 
-    await updateDealStatus(dealId, newStatus);
+    await updateDealStage(dealId, newStage);
 
-    if (newStatus === "won") {
-      setSelectedDeal({ ...currentDeal, status: "won" });
-      setIsConvertModalOpen(true);
+    // Se moveu para "won", mostra o dialog de confirmação
+    if (newStage === "won") {
+      setWonDeal({ ...currentDeal, stage: "won" });
+      setWonOpen(true);
     }
   }
 
+  function handleDragCancel() {
+    setActiveDeal(null);
+    setTimeout(() => {
+      didDragRef.current = false;
+    }, 150);
+  }
+
+  function handleCardClick(deal: Deal) {
+    if (didDragRef.current) return;
+    setSelectedDeal(deal);
+    setDetailsOpen(true);
+  }
+
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="flex h-full gap-4 w-full min-w-0">
-        {COLUMNS.map((col) => (
-          <PipelineColumn
-            key={col.id}
-            column={col}
-            deals={deals.filter((d) => d.status === col.id)}
-          />
-        ))}
-      </div>
+    <>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
+        <div className="flex h-full gap-3 overflow-x-auto">
+          {STAGES.map((stage) => {
+            const stageDeals = deals.filter((d) => d.stage === stage.id);
+            return (
+              <PipelineColumn
+                key={stage.id}
+                stage={stage}
+                deals={stageDeals}
+                onCardClick={handleCardClick}
+              />
+            );
+          })}
+        </div>
 
-      {/* Card arrastado renderizado por cima de tudo (evita sumir atrás das colunas) */}
-      <DragOverlay dropAnimation={null} className="z-100">
-        {activeDeal ? <DealCardPreview deal={activeDeal} /> : null}
-      </DragOverlay>
+        <DragOverlay dropAnimation={null}>
+          {activeDeal ? <DealCardPreview deal={activeDeal} /> : null}
+        </DragOverlay>
+      </DndContext>
 
-      <ConvertClientDialog
-        open={isConvertModalOpen}
-        onOpenChange={setIsConvertModalOpen}
+      <DealDetailsDialog
         deal={selectedDeal}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
       />
-    </DndContext>
+
+      <WonDialog
+        deal={wonDeal}
+        open={wonOpen}
+        onOpenChange={setWonOpen}
+      />
+    </>
   );
 }
 
-// Sub-componente da Coluna (Droppable)
-function PipelineColumn({ column, deals }: { column: any; deals: Deal[] }) {
-  const { setNodeRef } = useDroppable({ id: column.id });
+/* ───────────────────── Coluna do Pipeline (Droppable) ───────────────────── */
 
-  const totalValue = deals.reduce((acc, deal) => acc + Number(deal.value), 0);
+function PipelineColumn({
+  stage,
+  deals,
+  onCardClick,
+}: {
+  stage: (typeof STAGES)[number];
+  deals: Deal[];
+  onCardClick: (deal: Deal) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: stage.id });
+
+  const totalValue = deals.reduce((acc, d) => acc + Number(d.value), 0);
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 min-w-[160px] max-w-[220px] h-full rounded-xl flex flex-col border bg-opacity-50 ${column.color}`}
+      className={`flex flex-col flex-1 min-w-[250px] h-full rounded-xl border transition-colors ${
+        isOver
+          ? "bg-accent/60 border-primary/30"
+          : "bg-muted/30 border-transparent"
+      }`}
     >
-      {/* Cabeçalho Fixo */}
-      <div className="p-3 border-b border-gray-200/50 bg-white/50 rounded-t-xl backdrop-blur-sm shrink-0">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-sm text-gray-800">
-            {column.title}
-          </h3>
-          <span className="bg-white px-2 py-0.5 rounded-full text-[10px] font-bold text-gray-500 border shadow-sm">
+      {/* Cabeçalho fixo */}
+      <div className="px-4 pt-4 pb-3 shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span
+              className={`h-2.5 w-2.5 rounded-full shrink-0 ${stage.dotColor}`}
+            />
+            <h3 className="font-semibold text-sm text-foreground truncate">
+              {stage.title}
+            </h3>
+          </div>
+          <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
             {deals.length}
           </span>
         </div>
-        <div className="text-xs text-muted-foreground font-medium">
-          Total:{" "}
-          <span className="text-gray-900">
-            {new Intl.NumberFormat("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            }).format(totalValue)}
-          </span>
-        </div>
+        <p className="text-xs text-muted-foreground mt-1 pl-[18px]">
+          {formatBRL(totalValue)}
+        </p>
       </div>
 
-      {/* Uma única área de cards com scroll para evitar scroll duplo */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-3 min-h-0">
+      {/* Área de cards com scroll interno */}
+      <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3 space-y-2.5">
         {deals.map((deal) => (
-          <DealCard key={deal.id} deal={deal} />
+          <DealCard
+            key={deal.id}
+            deal={deal}
+            onClick={() => onCardClick(deal)}
+          />
         ))}
+
         {deals.length === 0 && (
-          <div className="h-24 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center text-xs text-gray-400">
+          <div className="h-24 border-2 border-dashed border-muted-foreground/20 rounded-lg flex items-center justify-center text-xs text-muted-foreground">
             Arraste aqui
           </div>
         )}
-        {/* Área vazia para facilitar o drop */}
-        <div className="h-4" />
+
+        <div className="h-2 shrink-0" />
       </div>
     </div>
-  );
-}
-
-// Sub-componente Modal de Conversão
-function ConvertClientDialog({
-  open,
-  onOpenChange,
-  deal,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  deal: Deal | null;
-}) {
-  if (!deal) return null;
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Parabéns pela Venda! 🚀</DialogTitle>
-          <DialogDescription>
-            O lead <b>{deal.company_name}</b> foi ganho. Deseja criar um acesso
-            ao portal para ele agora?
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label>Email do Cliente</Label>
-            <Input
-              defaultValue={deal.email || ""}
-              placeholder="cliente@empresa.com"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label>Senha Provisória</Label>
-            <Input defaultValue="Mudar@123" />
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Só Marcar como Ganho
-          </Button>
-          <Button
-            onClick={() => {
-              // Aqui você chamaria a action convertDealToClient
-              onOpenChange(false);
-              alert("Cliente criado com sucesso! (Simulação)");
-            }}
-          >
-            Criar Acesso
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

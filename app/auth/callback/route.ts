@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  // Ignoramos o 'next' original para forçar o redirecionamento correto baseado no cargo
 
   if (code) {
     const supabase = await createClient();
@@ -18,42 +17,48 @@ export async function GET(request: Request) {
         data: { user },
       } = await supabase.auth.getUser();
 
-      // Começamos assumindo que é um usuário comum
       let role = "user";
 
       if (user && user.email) {
-        // --- LÓGICA DE ADMIN ---
-        // OPÇÃO A: Lista de Emails VIP (Mais rápido pra funcionar AGORA)
-        // Substitua pelo SEU email do Google
-        /*const adminEmails = [
-          "conectaamarketing@gmail.com",
-          "joaopedroghilardi@gmail.com",
-        ];
-
-        if (adminEmails.includes(user.email)) {
-          role = "admin";
-        }*/
-
-        // Se você tiver uma coluna 'role' ou 'is_admin' no banco, use assim:
-
+        // 3. Verifica se já tem perfil cadastrado
         const { data: profile } = await supabase
           .from("profiles")
-          .select("role") // Certifique-se que essa coluna existe
+          .select("role")
           .eq("id", user.id)
           .single();
 
-        if (profile?.role === "admin") {
-          role = "admin";
+        if (profile?.role) {
+          // Perfil já existe — usa o role cadastrado
+          role = profile.role;
+        } else if (!profile) {
+          // Perfil não existe — verifica se o email bate com algum deal ganho
+          const { data: wonDeal } = await supabase
+            .from("deals")
+            .select("id, company_name")
+            .eq("email", user.email)
+            .eq("stage", "won")
+            .limit(1)
+            .maybeSingle();
+
+          if (wonDeal) {
+            // Cliente reconhecido! Cria o perfil automaticamente
+            await supabase.from("profiles").insert({
+              id: user.id,
+              email: user.email,
+              role: "client",
+              company_name: wonDeal.company_name ?? null,
+            });
+            role = "client";
+          }
         }
       }
 
-      // 3. Define para onde vai baseado no cargo descoberto
+      // 4. Define para onde vai baseado no cargo descoberto
       const finalUrl = role === "admin" ? "/admin/dashboard" : "/dashboard";
 
-      // Cria a resposta de redirecionamento
       const response = NextResponse.redirect(`${origin}${finalUrl}`);
 
-      // 4. GRAVA O COOKIE (Isso é o que faz o Middleware deixar você passar)
+      // 5. Grava o cookie de role (o proxy usa isso para controle de acesso)
       response.cookies.set("user_role", role, {
         path: "/",
         httpOnly: true,
