@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { supabaseAnonKey, supabaseUrl } from "@/utils/supabase/env";
 
 // Rotas que não precisam de login
 const publicRoutes = [
@@ -9,7 +10,7 @@ const publicRoutes = [
 
 const REDIRECT_WHEN_NOT_AUTHENTICATED_ROUTE = "/";
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const publicRoute = publicRoutes.find((route) => route.path === path);
 
@@ -65,8 +66,8 @@ export function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -86,7 +87,7 @@ export function proxy(request: NextRequest) {
   );
 
   // getUser() força a renovação do token se estiver expirado
-  supabase.auth.getUser();
+  await supabase.auth.getUser();
 
   return supabaseResponse;
 }
