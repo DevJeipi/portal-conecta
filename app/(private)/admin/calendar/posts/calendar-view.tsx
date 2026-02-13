@@ -124,6 +124,8 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
       const postDate = new Date(post.post_date);
       const dayLabel = format(postDate, "dd/MM (EEEE)", { locale: ptBR });
       const statusLabel = post.status === "posted" ? "publicado" : "agendado";
+      const postCaption = post.caption?.trim();
+      const postLink = post.post_link?.trim();
 
       if (dayLabel !== currentDay) {
         currentDay = dayLabel;
@@ -133,6 +135,12 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
       lines.push(
         `- ${format(postDate, "HH:mm")} | ${post.title} | ${getCompanyName(post)} | ${statusLabel}`,
       );
+      if (postCaption) {
+        lines.push(`  Legenda: ${postCaption}`);
+      }
+      if (postLink) {
+        lines.push(`  Link: ${postLink}`);
+      }
     });
 
     return lines.join("\n");
@@ -280,6 +288,23 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
                     placeholder="Detalhes sobre a publicação..."
                     className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     rows={3}
+                  />
+                </div>
+                <div>
+                  <Label>Legenda do Post</Label>
+                  <textarea
+                    name="caption"
+                    placeholder="Legenda que será usada na publicação..."
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label>Link do Post (opcional)</Label>
+                  <Input
+                    type="url"
+                    name="postLink"
+                    placeholder="https://..."
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
@@ -554,6 +579,33 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
                     </div>
                   </div>
                 )}
+                {selectedPost.caption && (
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label className="text-right text-muted-foreground">
+                      Legenda
+                    </Label>
+                    <div className="col-span-3 text-sm text-neutral-600 whitespace-pre-wrap">
+                      {selectedPost.caption}
+                    </div>
+                  </div>
+                )}
+                {selectedPost.post_link && (
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label className="text-right text-muted-foreground">
+                      Link
+                    </Label>
+                    <div className="col-span-3 text-sm">
+                      <a
+                        href={selectedPost.post_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline break-all"
+                      >
+                        {selectedPost.post_link}
+                      </a>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right text-muted-foreground">
                     Status
@@ -641,6 +693,25 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
                   placeholder="Detalhes sobre a publicação..."
                   className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   rows={3}
+                />
+              </div>
+              <div>
+                <Label>Legenda do Post</Label>
+                <textarea
+                  name="caption"
+                  defaultValue={selectedPost.caption || ""}
+                  placeholder="Legenda que será usada na publicação..."
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label>Link do Post (opcional)</Label>
+                <Input
+                  type="url"
+                  name="postLink"
+                  defaultValue={selectedPost.post_link || ""}
+                  placeholder="https://..."
                 />
               </div>
               <div className="grid grid-cols-3 gap-4">

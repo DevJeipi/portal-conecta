@@ -44,6 +44,8 @@ export async function createPost(formData: FormData) {
   const time = (formData.get("time") as string) || "12:00";
   const clientId = formData.get("clientId") as string;
   const description = (formData.get("description") as string) || null;
+  const caption = (formData.get("caption") as string) || null;
+  const postLink = (formData.get("postLink") as string) || null;
 
   console.log("Tentando criar post para a empresa:", clientId);
 
@@ -59,6 +61,14 @@ export async function createPost(formData: FormData) {
   // Só inclui description se tiver valor (evita erro caso coluna não exista)
   if (description) {
     insertData.description = description;
+  }
+  // Só inclui caption se tiver valor (evita erro caso coluna não exista)
+  if (caption) {
+    insertData.caption = caption;
+  }
+  // Só inclui post_link se tiver valor (evita erro caso coluna não exista)
+  if (postLink) {
+    insertData.post_link = postLink;
   }
 
   const { error } = await supabase.from("content_posts").insert(insertData);
@@ -94,6 +104,8 @@ export async function updatePost(postId: string, formData: FormData) {
   const time = (formData.get("time") as string) || "12:00";
   const clientId = formData.get("clientId") as string;
   const description = (formData.get("description") as string) || null;
+  const caption = (formData.get("caption") as string) || null;
+  const postLink = (formData.get("postLink") as string) || null;
 
   const scheduledDate = new Date(`${date}T${time}:00`);
 
@@ -106,6 +118,14 @@ export async function updatePost(postId: string, formData: FormData) {
   // Só inclui description se foi preenchida
   if (description !== null) {
     updateData.description = description;
+  }
+  // Só inclui caption se foi preenchida
+  if (caption !== null) {
+    updateData.caption = caption;
+  }
+  // Só inclui post_link se foi preenchido
+  if (postLink !== null) {
+    updateData.post_link = postLink;
   }
 
   const { error } = await supabase
