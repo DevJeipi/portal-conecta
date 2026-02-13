@@ -26,19 +26,37 @@ export function proxy(request: NextRequest) {
   }
 
   if (userRole) {
+    const getHomeByRole = (role: string) => {
+      if (role === "admin") return "/admin/dashboard";
+      if (role === "employee") return "/admin/calendar/posts";
+      return "/dashboard";
+    };
+
     if (publicRoute && publicRoute.whenAuthenticated === "redirect") {
       const redirectUrl = request.nextUrl.clone();
-      if (userRole === "admin") {
-        redirectUrl.pathname = "/admin/dashboard";
-      } else {
-        redirectUrl.pathname = "/dashboard";
-      }
+      redirectUrl.pathname = getHomeByRole(userRole);
       return NextResponse.redirect(redirectUrl);
     }
 
-    if (path.startsWith("/admin") && userRole !== "admin") {
+    if (path.startsWith("/admin")) {
+      // Employee so pode acessar o modulo de calendario do admin.
+      if (userRole === "employee" && !path.startsWith("/admin/calendar")) {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = "/admin/calendar/posts";
+        return NextResponse.redirect(redirectUrl);
+      }
+
+      if (userRole !== "admin" && userRole !== "employee") {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = "/dashboard";
+        return NextResponse.redirect(redirectUrl);
+      }
+    }
+
+    // /dashboard e area exclusiva de cliente.
+    if (path.startsWith("/dashboard") && userRole !== "client") {
       const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/dashboard";
+      redirectUrl.pathname = getHomeByRole(userRole);
       return NextResponse.redirect(redirectUrl);
     }
   }

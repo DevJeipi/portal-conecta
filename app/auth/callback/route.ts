@@ -54,7 +54,12 @@ export async function GET(request: Request) {
       }
 
       // 4. Define para onde vai baseado no cargo descoberto
-      const finalUrl = role === "admin" ? "/admin/dashboard" : "/dashboard";
+      const finalUrl =
+        role === "admin"
+          ? "/admin/dashboard"
+          : role === "employee"
+            ? "/admin/calendar/posts"
+            : "/dashboard";
 
       const response = NextResponse.redirect(`${origin}${finalUrl}`);
 

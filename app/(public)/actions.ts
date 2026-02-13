@@ -41,12 +41,16 @@ export async function login(formData: FormData) {
     secure: process.env.NODE_ENV === "production",
   });
 
-  // Redirecionamento
+  // Redirecionamento por role
   if (userRole === "admin") {
     redirect("/admin/dashboard");
-  } else {
-    redirect("/dashboard");
   }
+
+  if (userRole === "employee") {
+    redirect("/admin/calendar/posts");
+  }
+
+  redirect("/dashboard");
 }
 
 export async function logout() {
