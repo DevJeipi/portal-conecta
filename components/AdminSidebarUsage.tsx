@@ -55,9 +55,14 @@ const mainItems = [
   },
 ];
 
-export default function AdminSidebarUsage() {
+type AdminSidebarUsageProps = {
+  userRole?: string;
+};
+
+export default function AdminSidebarUsage({ userRole }: AdminSidebarUsageProps) {
   const pathname = usePathname();
   const { setOpen } = useSidebar();
+  const isEmployee = userRole === "employee";
 
   const isActiveLink = (url: string) =>
     pathname === url || pathname.startsWith(`${url}/`);
@@ -103,7 +108,8 @@ export default function AdminSidebarUsage() {
       <SidebarContent className="bg-primary text-neutral scrollbar-none">
         <SidebarGroup>
           <SidebarMenu>
-            {mainItems.map((item) => (
+            {!isEmployee &&
+              mainItems.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild
