@@ -105,25 +105,21 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
       return null;
     }
 
-    const selectedClient =
-      initialClientId === "all"
-        ? "Todos os clientes"
-        : clients.find((client: any) => client.id === initialClientId)
-            ?.company_name ||
-          clients.find((client: any) => client.id === initialClientId)?.name ||
-          "Cliente selecionado";
+    const pendingPosts = monthPosts.filter((post: any) => post.status !== "posted");
+    if (pendingPosts.length === 0) {
+      alert("Nenhum post pendente para este mês.");
+      return null;
+    }
 
     const lines: string[] = [
-      `📅 Calendário de posts - ${format(currentDate, "MMMM/yyyy", { locale: ptBR })}`,
-      `👤 Cliente: ${selectedClient}`,
+      `📅 Calendário de posts - ${format(currentDate, "MMMM", { locale: ptBR }).toUpperCase()}`,
       "",
     ];
 
     let currentDay = "";
-    monthPosts.forEach((post: any) => {
+    pendingPosts.forEach((post: any) => {
       const postDate = new Date(post.post_date);
       const dayLabel = format(postDate, "dd/MM (EEEE)", { locale: ptBR });
-      const statusLabel = post.status === "posted" ? "publicado" : "agendado";
       const postCaption = post.caption?.trim();
       const postLink = post.post_link?.trim();
 
@@ -132,15 +128,22 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
         lines.push(`*${dayLabel}*`);
       }
 
-      lines.push(
-        `- ${format(postDate, "HH:mm")} | ${post.title} | ${getCompanyName(post)} | ${statusLabel}`,
-      );
-      if (postCaption) {
-        lines.push(`  Legenda: ${postCaption}`);
-      }
+      // Linha principal do post (sem horário, sem status, sem cliente)
+      let mainLine = `| ${post.title}`;
       if (postLink) {
-        lines.push(`  Link: ${postLink}`);
+        const linkLabel = getCompanyName(post) || "Link";
+        mainLine += ` [${linkLabel} -> ${postLink}]`;
       }
+      lines.push(mainLine);
+
+      // Legenda em bloco separado
+      if (postCaption) {
+        lines.push("");
+        lines.push(`Legenda: ${postCaption}`);
+      }
+
+      // Espaçamento entre publicações
+      lines.push("");
     });
 
     return lines.join("\n");
@@ -380,13 +383,12 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
                     >
                       <div className="flex items-center justify-end mb-2">
                         <span
-                          className={`text-sm inline-flex items-center justify-center ${
-                            isDayToday
-                              ? "bg-blue-600 text-white rounded-full w-7 h-7 font-bold"
-                              : !isCurrentMonth
-                                ? "text-neutral-300"
-                                : "text-neutral-600 font-medium"
-                          }`}
+                          className={`text-sm inline-flex items-center justify-center ${isDayToday
+                            ? "bg-blue-600 text-white rounded-full w-7 h-7 font-bold"
+                            : !isCurrentMonth
+                              ? "text-neutral-300"
+                              : "text-neutral-600 font-medium"
+                            }`}
                         >
                           {format(day, "d")}
                         </span>
@@ -402,10 +404,9 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
                               className={`
                                 text-xs text-left border rounded px-2 py-1.5 truncate shadow-sm transition-all
                                 flex items-center gap-1.5
-                                ${
-                                  isPublished
-                                    ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-                                    : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                                ${isPublished
+                                  ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                                  : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
                                 }
                               `}
                             >
@@ -445,11 +446,10 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
                   <button
                     key={post.id}
                     onClick={() => setSelectedPost(post)}
-                    className={`w-full text-left rounded-lg border p-3 transition-all hover:shadow-md ${
-                      isPublished
-                        ? "border-l-4 border-l-green-500 border-green-200 bg-white"
-                        : "border-l-4 border-l-blue-500 border-blue-200 bg-white"
-                    }`}
+                    className={`w-full text-left rounded-lg border p-3 transition-all hover:shadow-md ${isPublished
+                      ? "border-l-4 border-l-green-500 border-green-200 bg-white"
+                      : "border-l-4 border-l-blue-500 border-blue-200 bg-white"
+                      }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <Share2
@@ -460,11 +460,10 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
                       />
                       <Badge
                         variant="secondary"
-                        className={`text-[10px] px-1.5 py-0 ${
-                          isPublished
-                            ? "bg-green-100 text-green-700"
-                            : "bg-blue-100 text-blue-700"
-                        }`}
+                        className={`text-[10px] px-1.5 py-0 ${isPublished
+                          ? "bg-green-100 text-green-700"
+                          : "bg-blue-100 text-blue-700"
+                          }`}
                       >
                         {isPublished ? "publicado" : "agendado"}
                       </Badge>
