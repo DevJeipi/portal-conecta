@@ -28,11 +28,13 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   // Busca posts agendados entre agora e daqui a 48H
+  // Usa a mesma fonte do calendário de posts para manter consistência.
   const postsPromise = supabase
-    .from("posts")
+    .from("content_posts")
     .select("*", { count: "exact", head: true })
-    .gte("scheduled_date", now.toISOString())
-    .lte("scheduled_date", in48Hours.toISOString());
+    .gte("post_date", now.toISOString())
+    .lte("post_date", in48Hours.toISOString())
+    .or("status.is.null,status.neq.posted");
 
   // Busca deals reais do pipeline
   const dealsPromise = supabase
