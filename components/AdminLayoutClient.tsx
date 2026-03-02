@@ -11,8 +11,9 @@ type AdminLayoutClientProps = Readonly<{
   userRole?: string;
 }>;
 
-function MobileTrigger() {
+function MobileTriggerByRole({ userRole }: { userRole?: string }) {
   const { toggleSidebar } = useSidebar();
+  const title = userRole === "client" ? "Portal do Cliente" : "Equipe Conecta";
 
   return (
     <div className="md:hidden w-full flex items-center p-4 border-b bg-primary font-primary">
@@ -24,7 +25,7 @@ function MobileTrigger() {
       >
         <Menu />
       </Button>
-      <span className="ml-2 font-bold text-md text-neutral">Equipe Conecta</span>
+      <span className="ml-2 font-bold text-md text-neutral">{title}</span>
     </div>
   );
 }
@@ -39,7 +40,7 @@ export default function AdminLayoutClient({
     <SidebarProvider open={open} onOpenChange={setOpen}>
       <AdminSidebarUsage userRole={userRole} />
       <main className="flex min-h-svh min-w-0 flex-1 flex-col overflow-hidden">
-        <MobileTrigger />
+        <MobileTriggerByRole userRole={userRole} />
         {children}
       </main>
     </SidebarProvider>

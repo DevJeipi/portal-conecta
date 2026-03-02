@@ -3,8 +3,32 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function getClients() {
+async function getAuthorizedCalendarClient() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Usuário não autenticado.");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const role = profile?.role;
+  if (role !== "admin" && role !== "employee") {
+    throw new Error("Acesso não autorizado.");
+  }
+
+  return supabase;
+}
+
+export async function getClients() {
+  const supabase = await getAuthorizedCalendarClient();
   const { data, error } = await supabase.from("companies").select("*");
 
   if (error) {
@@ -15,7 +39,7 @@ export async function getClients() {
 }
 
 export async function getCalendarPosts(clientId?: string) {
-  const supabase = await createClient();
+  const supabase = await getAuthorizedCalendarClient();
 
   let query = supabase.from("content_posts").select(`
       *,
@@ -38,7 +62,7 @@ export async function getCalendarPosts(clientId?: string) {
 }
 
 export async function createPost(formData: FormData) {
-  const supabase = await createClient();
+  const supabase = await getAuthorizedCalendarClient();
   const title = formData.get("title") as string;
   const date = formData.get("date") as string;
   const time = (formData.get("time") as string) || "12:00";
@@ -82,7 +106,7 @@ export async function createPost(formData: FormData) {
 }
 
 export async function confirmPost(postId: string) {
-  const supabase = await createClient();
+  const supabase = await getAuthorizedCalendarClient();
 
   const { error } = await supabase
     .from("content_posts")
@@ -98,7 +122,7 @@ export async function confirmPost(postId: string) {
 }
 
 export async function updatePost(postId: string, formData: FormData) {
-  const supabase = await createClient();
+  const supabase = await getAuthorizedCalendarClient();
   const title = formData.get("title") as string;
   const date = formData.get("date") as string;
   const time = (formData.get("time") as string) || "12:00";
@@ -142,7 +166,7 @@ export async function updatePost(postId: string, formData: FormData) {
 }
 
 export async function deletePost(postId: string) {
-  const supabase = await createClient();
+  const supabase = await getAuthorizedCalendarClient();
 
   const { error } = await supabase
     .from("content_posts")

@@ -63,6 +63,7 @@ export default function AdminSidebarUsage({ userRole }: AdminSidebarUsageProps) 
   const pathname = usePathname();
   const { setOpen } = useSidebar();
   const isEmployee = userRole === "employee";
+  const isClient = userRole === "client";
 
   const isActiveLink = (url: string) =>
     pathname === url || pathname.startsWith(`${url}/`);
@@ -96,7 +97,7 @@ export default function AdminSidebarUsage({ userRole }: AdminSidebarUsageProps) 
               <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate font-bold text-neutral">Conecta</span>
                 <span className="truncate text-xs text-neutral/70">
-                  Admin Panel
+                  {isClient ? "Cliente" : "Admin Panel"}
                 </span>
               </div>
             </SidebarMenuButton>
@@ -108,7 +109,7 @@ export default function AdminSidebarUsage({ userRole }: AdminSidebarUsageProps) 
       <SidebarContent className="bg-primary text-neutral scrollbar-none">
         <SidebarGroup>
           <SidebarMenu>
-            {!isEmployee &&
+            {!isEmployee && !isClient &&
               mainItems.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
@@ -127,7 +128,7 @@ export default function AdminSidebarUsage({ userRole }: AdminSidebarUsageProps) 
 
             <Collapsible
               asChild
-              defaultOpen={isActiveLink("/admin/calendar")}
+              defaultOpen={isClient ? isActiveLink("/dashboard") : isActiveLink("/admin/calendar")}
               className="group/collapsible"
             >
               <SidebarMenuItem>
@@ -150,10 +151,10 @@ export default function AdminSidebarUsage({ userRole }: AdminSidebarUsageProps) 
                     <SidebarMenuSubItem>
                       <SidebarMenuSubButton
                         asChild
-                        isActive={isActiveLink("/admin/calendar/posts")}
+                        isActive={isClient ? isActiveLink("/dashboard") : isActiveLink("/admin/calendar/posts")}
                         className=" hover:bg-neutral/10 data-[active=true]:text-neutral data-[active=true]:bg-neutral/10! data-[active=true]:font-medium"
                       >
-                        <Link href="/admin/calendar/posts">
+                        <Link href={isClient ? "/dashboard" : "/admin/calendar/posts"}>
                           <ImageIcon
                             color="var(--color-neutral)"
                             className="mr-1 h-4 w-4"
@@ -163,21 +164,23 @@ export default function AdminSidebarUsage({ userRole }: AdminSidebarUsageProps) 
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
 
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton
-                        asChild
-                        isActive={isActiveLink("/admin/calendar/meetings")}
-                        className=" hover:bg-neutral/10 data-[active=true]:text-neutral data-[active=true]:bg-neutral/10!  data-[active=true]:font-medium"
-                      >
-                        <Link href="/admin/calendar/meetings">
-                          <Video
-                            color="var(--color-neutral)"
-                            className="mr-1 h-4 w-4"
-                          />
-                          <span className="text-neutral">Reuniões</span>
-                        </Link>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
+                    {!isClient && (
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={isActiveLink("/admin/calendar/meetings")}
+                          className=" hover:bg-neutral/10 data-[active=true]:text-neutral data-[active=true]:bg-neutral/10!  data-[active=true]:font-medium"
+                        >
+                          <Link href="/admin/calendar/meetings">
+                            <Video
+                              color="var(--color-neutral)"
+                              className="mr-1 h-4 w-4"
+                            />
+                            <span className="text-neutral">Reuniões</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    )}
                   </SidebarMenuSub>
                 </CollapsibleContent>
               </SidebarMenuItem>

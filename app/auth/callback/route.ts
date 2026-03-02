@@ -34,7 +34,7 @@ export async function GET(request: Request) {
           // Perfil não existe — verifica se o email bate com algum deal ganho
           const { data: wonDeal } = await supabase
             .from("deals")
-            .select("id, company_name")
+            .select("id, company_id, company_name")
             .eq("email", user.email)
             .eq("stage", "won")
             .limit(1)
@@ -46,6 +46,7 @@ export async function GET(request: Request) {
               id: user.id,
               email: user.email,
               role: "client",
+              company_id: wonDeal.company_id ?? null,
               company_name: wonDeal.company_name ?? null,
             });
             role = "client";

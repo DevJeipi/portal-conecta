@@ -4,9 +4,33 @@ import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { google } from "googleapis";
 
+async function getAuthorizedMeetingClient() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Usuário não autenticado.");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const role = profile?.role;
+  if (role !== "admin" && role !== "employee") {
+    throw new Error("Acesso não autorizado.");
+  }
+
+  return supabase;
+}
+
 // --- BUSCAR REUNIÕES ---
 export async function getMeetings(clientId?: string) {
-  const supabase = await createClient();
+  const supabase = await getAuthorizedMeetingClient();
 
   let query = supabase.from("meetings").select("*");
 
@@ -52,7 +76,7 @@ export async function getMeetings(clientId?: string) {
 // --- CRIAR REUNIÃO (Com Integração Google Service Account) ---
 // --- CRIAR REUNIÃO (Versão Produção - Custo Zero) ---
 export async function createMeeting(formData: FormData) {
-  const supabase = await createClient();
+  const supabase = await getAuthorizedMeetingClient();
 
   // 1. Coleta dados
   const title = formData.get("title") as string;
@@ -192,7 +216,7 @@ export async function createMeeting(formData: FormData) {
 
 // --- 3. DELETAR REUNIÃO ---
 export async function deleteMeeting(meetingId: string) {
-  const supabase = await createClient();
+  const supabase = await getAuthorizedMeetingClient();
 
   const { error } = await supabase
     .from("meetings")
