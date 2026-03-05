@@ -68,6 +68,11 @@ export default function CalendarView({
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
     [],
   );
+  const [newMeetingClientId, setNewMeetingClientId] = useState<string>(
+    initialClientId && initialClientId !== "all"
+      ? initialClientId
+      : (clients?.[0]?.id ?? ""),
+  );
 
   // Modais
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
@@ -167,6 +172,30 @@ export default function CalendarView({
                 <DialogTitle>Agendar Nova Reunião</DialogTitle>
               </DialogHeader>
               <form action={handleCreate} className="space-y-4 mt-4">
+                <div>
+                  <Label>Cliente</Label>
+                  <Select
+                    value={newMeetingClientId}
+                    onValueChange={setNewMeetingClientId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <input
+                    type="hidden"
+                    name="clientId"
+                    value={newMeetingClientId}
+                  />
+                </div>
+
                 <div>
                   <Label>Assunto</Label>
                   <Input

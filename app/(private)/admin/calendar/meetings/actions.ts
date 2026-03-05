@@ -82,9 +82,14 @@ export async function createMeeting(formData: FormData) {
   const title = formData.get("title") as string;
   const date = formData.get("date") as string;
   const time = formData.get("time") as string;
+  const clientId = formData.get("clientId") as string;
   const link = formData.get("link") as string;
   const participantsJson = formData.get("participantsJson") as string;
   const participantIds = JSON.parse(participantsJson || "[]");
+
+  if (!clientId) {
+    throw new Error("Selecione o cliente da reunião.");
+  }
 
   const startDateTime = new Date(`${date}T${time}:00`);
   const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000);
@@ -190,6 +195,7 @@ export async function createMeeting(formData: FormData) {
     .from("meetings")
     .insert({
       title,
+      company_id: clientId,
       start_time: startDateTime.toISOString(),
       end_time: endDateTime.toISOString(),
       meeting_url: googleEventLink || null,

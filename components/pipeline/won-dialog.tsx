@@ -15,10 +15,14 @@ import { PartyPopper, Mail, Info } from "lucide-react";
 export function WonDialog({
   deal,
   open,
+  isLoading,
+  onConfirm,
   onOpenChange,
 }: {
   deal: Deal | null;
   open: boolean;
+  isLoading: boolean;
+  onConfirm: () => void;
   onOpenChange: (open: boolean) => void;
 }) {
   if (!deal) return null;
@@ -31,11 +35,12 @@ export function WonDialog({
         <DialogHeader>
           <div className="flex items-center gap-2">
             <PartyPopper className="h-5 w-5 text-emerald-500" />
-            <DialogTitle>Negociação Ganha!</DialogTitle>
+            <DialogTitle>Confirmar negociação como ganha?</DialogTitle>
           </div>
           <DialogDescription>
-            <strong>{deal.company_name || deal.title}</strong> foi marcado como
-            ganho.
+            Ao confirmar, <strong>{deal.company_name || deal.title}</strong> sera
+            movido(a) para ganho, com tentativa de preparar o acesso do cliente
+            no portal.
           </DialogDescription>
         </DialogHeader>
 
@@ -71,7 +76,16 @@ export function WonDialog({
         </div>
 
         <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>Entendi</Button>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
+            Cancelar
+          </Button>
+          <Button onClick={onConfirm} disabled={isLoading}>
+            {isLoading ? "Confirmando..." : "Confirmar ganho"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

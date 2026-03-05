@@ -4,6 +4,158 @@ import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Deal } from "./constants";
 
+type DealRow = {
+  id: string;
+  title: string;
+  email: string | null;
+  company_id: string | null;
+  company_name: string | null;
+  stage: string;
+};
+
+type OnboardingQueueStatus = "queued" | "skipped_no_email" | "failed";
+type CompanyResolveStatus = "not_needed" | "linked_existing" | "created" | "failed";
+
+async function ensureCompanyForDeal(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  deal: DealRow,
+) {
+  if (deal.company_id) {
+    return {
+      companyId: deal.company_id,
+      status: "not_needed" as CompanyResolveStatus,
+    };
+  }
+
+  const companyName = deal.company_name?.trim();
+  if (!companyName) {
+    return { companyId: null, status: "failed" as CompanyResolveStatus };
+  }
+
+  const { data: existingByName } = await supabase
+    .from("companies")
+    .select("id")
+    .eq("name", companyName)
+    .maybeSingle();
+
+  if (existingByName?.id) {
+    return {
+      companyId: existingByName.id as string,
+      status: "linked_existing" as CompanyResolveStatus,
+    };
+  }
+
+  const { data: existingByNameInsensitive } = await supabase
+    .from("companies")
+    .select("id")
+    .ilike("name", companyName)
+    .maybeSingle();
+
+  if (existingByNameInsensitive?.id) {
+    return {
+      companyId: existingByNameInsensitive.id as string,
+      status: "linked_existing" as CompanyResolveStatus,
+    };
+  }
+
+  const { data: insertedCompany, error } = await supabase
+    .from("companies")
+    .insert({ name: companyName })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("Erro ao criar company para deal ganho:", error);
+    const { data: companyAfterError } = await supabase
+      .from("companies")
+      .select("id")
+      .ilike("name", companyName)
+      .maybeSingle();
+    if (companyAfterError?.id) {
+      return {
+        companyId: companyAfterError.id as string,
+        status: "linked_existing" as CompanyResolveStatus,
+      };
+    }
+
+    return { companyId: null, status: "failed" as CompanyResolveStatus };
+  }
+
+  return {
+    companyId: (insertedCompany?.id as string | undefined) ?? null,
+    status: "created" as CompanyResolveStatus,
+  };
+}
+
+async function queueClientOnboarding(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  deal: DealRow,
+  resolvedCompanyId: string | null,
+) : Promise<OnboardingQueueStatus> {
+  if (!deal.email) return "skipped_no_email";
+
+  const normalizedEmail = deal.email.trim().toLowerCase();
+  if (!normalizedEmail) return "skipped_no_email";
+
+  const { data: existingQueue, error: existingQueueError } = await supabase
+    .from("client_onboarding_queue")
+    .select("id")
+    .ilike("email", normalizedEmail)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingQueueError) {
+    console.error(
+      "Erro ao buscar fila de onboarding do cliente (deal ganho):",
+      existingQueueError,
+    );
+    return "failed";
+  }
+
+  if (existingQueue?.id) {
+    const { error: updateQueueError } = await supabase
+      .from("client_onboarding_queue")
+      .update({
+        deal_id: deal.id,
+        email: normalizedEmail,
+        company_id: resolvedCompanyId,
+        company_name: deal.company_name,
+        source: "deal_won",
+        status: "pending",
+        error_message: null,
+      })
+      .eq("id", existingQueue.id);
+
+    if (updateQueueError) {
+      console.error(
+        "Erro ao atualizar fila de onboarding do cliente:",
+        updateQueueError,
+      );
+      return "failed";
+    }
+
+    return "queued";
+  }
+
+  const { error: insertQueueError } = await supabase
+    .from("client_onboarding_queue")
+    .insert({
+      deal_id: deal.id,
+      email: normalizedEmail,
+      company_id: resolvedCompanyId,
+      company_name: deal.company_name,
+      source: "deal_won",
+      status: "pending",
+    });
+
+  if (insertQueueError) {
+    console.error("Erro ao inserir fila de onboarding do cliente:", insertQueueError);
+    return "failed";
+  }
+
+  return "queued";
+}
+
 export async function getDeals(): Promise<Deal[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -19,17 +171,93 @@ export async function getDeals(): Promise<Deal[]> {
   return (data as Deal[]) ?? [];
 }
 
-export async function updateDealStage(dealId: string, newStage: string) {
+export async function updateDealStage(
+  dealId: string,
+  newStage: string,
+): Promise<{
+  success: boolean;
+  onboardingQueueStatus?: OnboardingQueueStatus;
+  companyStatus?: CompanyResolveStatus;
+}> {
   const supabase = await createClient();
+
+  if (newStage === "won") {
+    const { data: dealData, error: dealError } = await supabase
+      .from("deals")
+      .select("id, title, email, company_id, company_name, stage")
+      .eq("id", dealId)
+      .maybeSingle();
+
+    if (dealError || !dealData) {
+      console.error("Erro ao buscar deal para marcar como ganha:", dealError);
+      return {
+        success: false,
+        onboardingQueueStatus: "failed" as const,
+        companyStatus: "failed" as const,
+      };
+    }
+
+    const deal = dealData as DealRow;
+    const companyResolution = await ensureCompanyForDeal(supabase, deal);
+    const resolvedCompanyId = companyResolution.companyId;
+
+    const { error: updateError } = await supabase
+      .from("deals")
+      .update({
+        stage: newStage,
+        company_id: resolvedCompanyId ?? deal.company_id ?? null,
+      })
+      .eq("id", dealId);
+
+    if (updateError) {
+      console.error("Erro ao mover deal para ganho:", updateError);
+      return {
+        success: false,
+        onboardingQueueStatus: "failed" as const,
+        companyStatus: companyResolution.status,
+      };
+    }
+
+    const onboardingQueueStatus = await queueClientOnboarding(
+      supabase,
+      deal,
+      resolvedCompanyId ?? deal.company_id,
+    );
+
+    revalidatePath("/admin/pipeline");
+    return {
+      success: true,
+      onboardingQueueStatus,
+      companyStatus: companyResolution.status,
+    };
+  }
 
   const { error } = await supabase
     .from("deals")
     .update({ stage: newStage })
     .eq("id", dealId);
 
-  if (error) console.error("Erro ao mover deal:", error);
+  if (error) {
+    console.error("Erro ao mover deal:", error);
+    return { success: false };
+  }
 
   revalidatePath("/admin/pipeline");
+  return { success: true };
+}
+
+export async function deleteDeal(dealId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("deals").delete().eq("id", dealId);
+
+  if (error) {
+    console.error("Erro ao deletar deal:", error);
+    return { success: false };
+  }
+
+  revalidatePath("/admin/pipeline");
+  return { success: true };
 }
 
 export async function createDeal(formData: FormData) {

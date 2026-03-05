@@ -90,12 +90,13 @@ export function CreateDealDialog() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="email">Email (Opcional)</Label>
+            <Label htmlFor="email">Email (Obrigatório)</Label>
             <Input
               id="email"
               name="email"
               type="email"
               placeholder="cliente@email.com"
+              required
             />
             <p className="text-[10px] text-muted-foreground">
               Usado para criar acesso futuro.

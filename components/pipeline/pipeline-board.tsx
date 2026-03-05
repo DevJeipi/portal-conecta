@@ -12,17 +12,27 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { Deal, STAGES } from "@/app/(private)/admin/pipeline/constants";
-import { updateDealStage } from "@/app/(private)/admin/pipeline/actions";
+import { deleteDeal, updateDealStage } from "@/app/(private)/admin/pipeline/actions";
 import { DealCard } from "./deal-card";
 import { DealCardPreview } from "./deal-card-preview";
 import { DealDetailsDialog } from "./deal-details-dialog";
 import { WonDialog } from "./won-dialog";
+import { LostDealDialog } from "./lost-deal-dialog";
 
 const formatBRL = (value: number) =>
   new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
   }).format(value);
+
+type ToastType = "success" | "error" | "info";
+
+type ToastItem = {
+  id: number;
+  title: string;
+  description?: string;
+  type: ToastType;
+};
 
 export function PipelineBoard({ initialDeals }: { initialDeals: Deal[] }) {
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
@@ -31,7 +41,25 @@ export function PipelineBoard({ initialDeals }: { initialDeals: Deal[] }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [wonDeal, setWonDeal] = useState<Deal | null>(null);
   const [wonOpen, setWonOpen] = useState(false);
+  const [isConfirmingWonDeal, setIsConfirmingWonDeal] = useState(false);
+  const [lostDeal, setLostDeal] = useState<Deal | null>(null);
+  const [lostOpen, setLostOpen] = useState(false);
+  const [isDeletingLostDeal, setIsDeletingLostDeal] = useState(false);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
   const didDragRef = useRef(false);
+
+  function pushToast({
+    title,
+    description,
+    type,
+  }: Omit<ToastItem, "id">) {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((prev) => [...prev, { id, title, description, type }]);
+
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 4000);
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -61,20 +89,148 @@ export function PipelineBoard({ initialDeals }: { initialDeals: Deal[] }) {
 
     if (currentDeal.stage === newStage) return;
 
-    // Atualização otimista
+    if (newStage === "lost") {
+      setLostDeal(currentDeal);
+      setLostOpen(true);
+      return;
+    }
+
+    if (newStage === "won") {
+      setWonDeal(currentDeal);
+      setWonOpen(true);
+      return;
+    }
+
+    // Atualização otimista para os demais estágios
     setDeals((prev) =>
       prev.map((deal) =>
         deal.id === dealId ? { ...deal, stage: newStage } : deal,
       ),
     );
 
-    await updateDealStage(dealId, newStage);
-
-    // Se moveu para "won", mostra o dialog de confirmação
-    if (newStage === "won") {
-      setWonDeal({ ...currentDeal, stage: "won" });
-      setWonOpen(true);
+    const result = await updateDealStage(dealId, newStage);
+    if (!result?.success) {
+      setDeals((prev) =>
+        prev.map((deal) =>
+          deal.id === dealId ? { ...deal, stage: currentDeal.stage } : deal,
+        ),
+      );
+      pushToast({
+        type: "error",
+        title: "Nao foi possivel mover a negociacao",
+        description: "Tente novamente em instantes.",
+      });
+      return;
     }
+  }
+
+  async function handleConfirmWonDeal() {
+    if (!wonDeal || isConfirmingWonDeal) return;
+
+    const confirmedDeal = wonDeal;
+    setIsConfirmingWonDeal(true);
+
+    setDeals((prev) =>
+      prev.map((deal) =>
+        deal.id === confirmedDeal.id ? { ...deal, stage: "won" } : deal,
+      ),
+    );
+
+    const result = await updateDealStage(confirmedDeal.id, "won");
+
+    if (!result?.success) {
+      setDeals((prev) =>
+        prev.map((deal) =>
+          deal.id === confirmedDeal.id
+            ? { ...deal, stage: confirmedDeal.stage }
+            : deal,
+        ),
+      );
+      pushToast({
+        type: "error",
+        title: "Nao foi possivel confirmar ganho",
+        description: "A negociacao voltou para a etapa anterior.",
+      });
+    } else {
+      if (result.companyStatus === "created") {
+        pushToast({
+          type: "success",
+          title: "Empresa criada com sucesso",
+          description: "A company foi criada automaticamente para este cliente.",
+        });
+      } else if (result.companyStatus === "linked_existing") {
+        pushToast({
+          type: "info",
+          title: "Empresa vinculada",
+          description: "Uma company existente foi associada ao deal ganho.",
+        });
+      } else if (result.companyStatus === "failed") {
+        pushToast({
+          type: "error",
+          title: "Nao foi possivel criar/vincular company",
+          description: "Verifique as permissoes da tabela companies (RLS/policies).",
+        });
+      }
+
+      if (result.onboardingQueueStatus === "queued") {
+        pushToast({
+          type: "success",
+          title: "Cliente preparado para acesso",
+          description:
+            "O onboarding foi registrado para criar o perfil no primeiro login.",
+        });
+      } else if (result.onboardingQueueStatus === "skipped_no_email") {
+        pushToast({
+          type: "info",
+          title: "Negociacao ganha sem email",
+          description: "Nao foi possivel preparar o acesso automatico do cliente.",
+        });
+      } else if (result.onboardingQueueStatus === "failed") {
+        pushToast({
+          type: "error",
+          title: "Negociacao ganha, mas onboarding falhou",
+          description: "Verifique a fila de onboarding no banco.",
+        });
+      }
+    }
+
+    setIsConfirmingWonDeal(false);
+    setWonOpen(false);
+    setWonDeal(null);
+  }
+
+  async function handleConfirmLostDeal() {
+    if (!lostDeal || isDeletingLostDeal) return;
+
+    const deletedDeal = lostDeal;
+    setIsDeletingLostDeal(true);
+
+    setDeals((prev) => prev.filter((deal) => deal.id !== deletedDeal.id));
+
+    const result = await deleteDeal(deletedDeal.id);
+
+    if (!result.success) {
+      setDeals((prev) => {
+        const alreadyExists = prev.some((deal) => deal.id === deletedDeal.id);
+        if (alreadyExists) return prev;
+        return [deletedDeal, ...prev];
+      });
+      pushToast({
+        type: "error",
+        title: "Erro ao remover negociacao perdida",
+        description: "A negociacao foi restaurada no board.",
+      });
+    } else {
+      pushToast({
+        type: "success",
+        title: "Negociacao removida",
+        description: "A deal perdida foi deletada do banco de dados.",
+      });
+    }
+
+    setIsDeletingLostDeal(false);
+    setLostOpen(false);
+    setLostDeal(null);
   }
 
   function handleDragCancel() {
@@ -126,8 +282,48 @@ export function PipelineBoard({ initialDeals }: { initialDeals: Deal[] }) {
       <WonDialog
         deal={wonDeal}
         open={wonOpen}
-        onOpenChange={setWonOpen}
+        isLoading={isConfirmingWonDeal}
+        onConfirm={handleConfirmWonDeal}
+        onOpenChange={(open) => {
+          if (!isConfirmingWonDeal) {
+            setWonOpen(open);
+            if (!open) setWonDeal(null);
+          }
+        }}
       />
+
+      <LostDealDialog
+        deal={lostDeal}
+        open={lostOpen}
+        isLoading={isDeletingLostDeal}
+        onConfirm={handleConfirmLostDeal}
+        onOpenChange={(open) => {
+          if (!isDeletingLostDeal) {
+            setLostOpen(open);
+            if (!open) setLostDeal(null);
+          }
+        }}
+      />
+
+      <div className="fixed right-4 bottom-4 z-60 flex w-[320px] max-w-[calc(100vw-2rem)] flex-col gap-2">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`rounded-lg border p-3 shadow-md backdrop-blur-sm ${
+              toast.type === "success"
+                ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                : toast.type === "error"
+                  ? "border-red-300 bg-red-50 text-red-900"
+                  : "border-sky-300 bg-sky-50 text-sky-900"
+            }`}
+          >
+            <p className="text-sm font-semibold">{toast.title}</p>
+            {toast.description ? (
+              <p className="mt-1 text-xs opacity-90">{toast.description}</p>
+            ) : null}
+          </div>
+        ))}
+      </div>
     </>
   );
 }
