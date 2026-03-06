@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   description: "Gestão Inteligente",
   manifest: "/manifest.json",
   icons: {
-    icon: "/icon-192.svg",
-    apple: "/icon-192.svg",
+    icon: "/android-chrome-192x192.png",
+    apple: "/apple-touch-icon.png",
   },
   appleWebApp: {
     capable: true,
@@ -44,8 +44,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-br">
+    <html lang="pt-br" suppressHydrationWarning>
       <body
+        suppressHydrationWarning
         className={`${unbounded.variable} ${dmsans.variable} min-h-screen bg-neutral antialiased`}
       >
         <PwaRegister />

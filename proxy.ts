@@ -12,6 +12,22 @@ const REDIRECT_WHEN_NOT_AUTHENTICATED_ROUTE = "/";
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
+
+  // Nunca proteger arquivos estaticos/publicos (manifest, sw, icones, etc).
+  // Se estes assets forem redirecionados para login, PWA quebra com erro de sintaxe.
+  const isStaticAsset =
+    path === "/sw.js" ||
+    path === "/manifest.json" ||
+    path === "/site.webmanifest" ||
+    path === "/favicon.ico" ||
+    path.startsWith("/icons/") ||
+    path.startsWith("/images/") ||
+    /\.[a-zA-Z0-9]+$/.test(path);
+
+  if (isStaticAsset) {
+    return NextResponse.next();
+  }
+
   const publicRoute = publicRoutes.find((route) => route.path === path);
 
   const userRole = request.cookies.get("user_role")?.value;
@@ -138,5 +154,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api|_next/static|_next/image).*)"],
 };
