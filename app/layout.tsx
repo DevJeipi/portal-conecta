@@ -1,11 +1,16 @@
 import { Metadata, Viewport } from "next";
 import { Unbounded, DM_Sans } from "next/font/google";
 import "./globals.css";
+import { PwaRegister } from "./pwa-register";
 
 export const metadata: Metadata = {
   title: "Portal Conecta",
   description: "Gestão Inteligente",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192.svg",
+    apple: "/icon-192.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -43,6 +48,7 @@ export default function RootLayout({
       <body
         className={`${unbounded.variable} ${dmsans.variable} min-h-screen bg-neutral antialiased`}
       >
+        <PwaRegister />
         {children}
       </body>
     </html>

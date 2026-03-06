@@ -8,11 +8,11 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await createRouteClient();
 
-    // 1. Troca o código pela sessão (Login acontece aqui)
+    // Troca o código pela sessão (Login acontece aqui)
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // 2. Descobrir quem logou
+      // Descobrir quem logou
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -48,7 +48,8 @@ export async function GET(request: Request) {
 
           if (onboardingQueue) {
             queueId = onboardingQueue.id as string;
-            resolvedCompanyId = (onboardingQueue.company_id as string | null) ?? null;
+            resolvedCompanyId =
+              (onboardingQueue.company_id as string | null) ?? null;
             resolvedCompanyName =
               (onboardingQueue.company_name as string | null) ?? null;
           } else {
@@ -97,9 +98,15 @@ export async function GET(request: Request) {
                   error_message: createProfileError.message,
                 })
                 .eq("id", queueId);
-              console.error("Erro ao criar profile via onboarding:", createProfileError);
+              console.error(
+                "Erro ao criar profile via onboarding:",
+                createProfileError,
+              );
             } else {
-              console.error("Erro ao criar profile de cliente:", createProfileError);
+              console.error(
+                "Erro ao criar profile de cliente:",
+                createProfileError,
+              );
             }
           }
         }
