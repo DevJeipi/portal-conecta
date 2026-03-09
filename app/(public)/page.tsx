@@ -2,13 +2,25 @@
 
 import { createClient } from "@/utils/supabase/client";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { GridScan } from "@/components/GridScan";
 import { AtSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function LoginPage() {
+function LoginErrorAlert() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
+
+  if (error !== "client_inactive") return null;
+
+  return (
+    <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+      Seu acesso está inativo. Entre em contato com a equipe Conecta.
+    </div>
+  );
+}
+
+export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     const supabase = createClient();
@@ -51,11 +63,9 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {error === "client_inactive" && (
-          <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-            Seu acesso está inativo. Entre em contato com a equipe Conecta.
-          </div>
-        )}
+        <Suspense fallback={null}>
+          <LoginErrorAlert />
+        </Suspense>
 
         {/* CONTAINER INPUTS */}
         <form>
