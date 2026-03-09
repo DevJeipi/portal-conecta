@@ -322,7 +322,7 @@ export async function updateClientGeneralInfo(formData: FormData) {
 
   revalidatePath("/admin/clients");
   revalidatePath(`/admin/clients/${clientId}`);
-  redirect(`/admin/clients/${clientId}?tab=overview&saved=1`);
+  redirect(`/admin/clients/${clientId}/overview?saved=1`);
 }
 
 export async function toggleClientStatus(formData: FormData) {
@@ -346,7 +346,7 @@ export async function toggleClientStatus(formData: FormData) {
 
   revalidatePath("/admin/clients");
   revalidatePath(`/admin/clients/${clientId}`);
-  redirect(`/admin/clients/${clientId}?tab=overview&statusSaved=1`);
+  redirect(`/admin/clients/${clientId}/overview?statusSaved=1`);
 }
 
 export async function updateOnboardingStep(formData: FormData) {
@@ -380,7 +380,7 @@ export async function updateOnboardingStep(formData: FormData) {
   }
 
   revalidatePath(`/admin/clients/${clientId}`);
-  redirect(`/admin/clients/${clientId}?tab=checklist&saved=1`);
+  redirect(`/admin/clients/${clientId}/checklist?saved=1`);
 }
 
 export async function createClientCredential(formData: FormData) {
@@ -415,7 +415,7 @@ export async function createClientCredential(formData: FormData) {
   }
 
   revalidatePath(`/admin/clients/${clientId}`);
-  redirect(`/admin/clients/${clientId}?tab=credentials&saved=1`);
+  redirect(`/admin/clients/${clientId}/credentials?saved=1`);
 }
 
 export async function deleteClientCredential(formData: FormData) {
@@ -439,5 +439,5 @@ export async function deleteClientCredential(formData: FormData) {
   }
 
   revalidatePath(`/admin/clients/${clientId}`);
-  redirect(`/admin/clients/${clientId}?tab=credentials&deleted=1`);
+  redirect(`/admin/clients/${clientId}/credentials?deleted=1`);
 }

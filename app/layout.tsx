@@ -2,6 +2,7 @@ import { Metadata, Viewport } from "next";
 import { Unbounded, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { PwaRegister } from "./pwa-register";
+import { AppProgressProvider } from "./progress-provider";
 
 export const metadata: Metadata = {
   title: "Portal Conecta",
@@ -50,7 +51,7 @@ export default function RootLayout({
         className={`${unbounded.variable} ${dmsans.variable} min-h-screen bg-neutral antialiased`}
       >
         <PwaRegister />
-        {children}
+        <AppProgressProvider>{children}</AppProgressProvider>
       </body>
     </html>
   );

@@ -22,7 +22,10 @@ export default async function ClientsPage(props: {
   searchParams: Promise<ClientsPageSearchParams>;
 }) {
   const searchParams = await props.searchParams;
-  const status = searchParams.status === "inactive" ? "inactive" : "all";
+  const status =
+    searchParams.status === "active" || searchParams.status === "inactive"
+      ? searchParams.status
+      : "all";
   const query = (searchParams.q ?? "").trim();
 
   const clients = await getClients({
@@ -110,7 +113,7 @@ export default async function ClientsPage(props: {
                   <TableCell>{client.primary_email || "—"}</TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="outline" size="sm">
-                      <Link href={`/admin/clients/${client.id}`}>Ver detalhes</Link>
+                      <Link href={`/admin/clients/${client.id}/overview`}>Ver detalhes</Link>
                     </Button>
                   </TableCell>
                 </TableRow>
