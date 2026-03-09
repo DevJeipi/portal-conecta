@@ -144,7 +144,8 @@ async function seedMissingChecklistSteps(
   }
 }
 
-export async function syncClientsFromCompanies() {
+export async function syncClientsFromCompanies(formData: FormData): Promise<void> {
+  void formData;
   const { supabase } = await getAuthorizedAdminContext();
 
   const { data: companies, error } = await supabase
@@ -153,7 +154,7 @@ export async function syncClientsFromCompanies() {
     .order("name", { ascending: true });
 
   if (error || !companies) {
-    return { success: false, error: "Não foi possível sincronizar clientes." };
+    throw new Error("Não foi possível sincronizar clientes.");
   }
 
   for (const company of companies) {
@@ -187,7 +188,6 @@ export async function syncClientsFromCompanies() {
   }
 
   revalidatePath("/admin/clients");
-  return { success: true };
 }
 
 export async function getClients(params?: {
