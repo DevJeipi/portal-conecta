@@ -16,6 +16,18 @@ const statusLabel: Record<string, string> = {
   done: "Concluído",
 };
 
+const statusCardClass: Record<string, string> = {
+  pending: "",
+  in_progress: "border-amber-500/40 bg-amber-500/10",
+  done: "border-emerald-500/40 bg-emerald-500/5",
+};
+
+const statusBadgeClass: Record<string, string> = {
+  pending: "",
+  in_progress: "border border-amber-300 bg-amber-100 text-amber-900",
+  done: "border border-emerald-300 bg-emerald-100 text-emerald-900",
+};
+
 export default async function ClientChecklistPage(props: {
   params: Promise<{ clientId: string }>;
   searchParams: Promise<{ saved?: string }>;
@@ -44,7 +56,7 @@ export default async function ClientChecklistPage(props: {
             <form
               key={step.id}
               action={updateOnboardingStep}
-              className="grid gap-3 rounded-lg border p-4"
+              className={`grid gap-3 rounded-lg border p-4 ${statusCardClass[step.status] || ""}`}
             >
               <input type="hidden" name="clientId" value={clientId} />
               <input type="hidden" name="stepId" value={step.id} />
@@ -53,7 +65,12 @@ export default async function ClientChecklistPage(props: {
                 <p className="font-medium">
                   {step.step_order}. {step.step_title}
                 </p>
-                <Badge variant="secondary">{statusLabel[step.status]}</Badge>
+                <Badge
+                  variant="secondary"
+                  className={statusBadgeClass[step.status] || ""}
+                >
+                  {statusLabel[step.status]}
+                </Badge>
               </div>
 
               <div className="grid md:grid-cols-2 gap-3">
