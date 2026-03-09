@@ -626,49 +626,45 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
                 </div>
               </div>
 
-              <DialogFooter className="sm:justify-between gap-2">
-                {/* Lado Esquerdo: Excluir e Editar */}
-                <div className="flex-1 flex justify-start gap-2">
+              <DialogFooter className="flex flex-col md:flex-row md:justify-between gap-2">
+                {selectedPost?.status !== "posted" && (
                   <Button
-                    className="w-full md:w-10"
+                    onClick={handleConfirm}
+                    className="w-full md:w-auto md:order-2 bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Confirmar Postagem
+                  </Button>
+                )}
+
+                <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:order-1">
+                  <Button
                     variant="destructive"
-                    size="icon"
                     onClick={handleDelete}
                     title="Excluir Post"
+                    className="md:w-10 md:px-0"
                   >
                     <Trash2 size={16} />
+                    <span className="md:hidden ml-2">Excluir</span>
                   </Button>
                   <Button
-                    className="w-full md:w-10"
                     variant="outline"
-                    size="icon"
                     onClick={() => setIsEditing(true)}
                     title="Editar Post"
+                    className="md:w-10 md:px-0"
                   >
                     <Pencil size={16} />
+                    <span className="md:hidden ml-2">Editar</span>
                   </Button>
                 </div>
 
-                {/* Lado Direito: Fechar e Confirmar */}
-                <div className="flex w-full md:w-auto gap-2">
-                  <Button
-                    className="hidden md:block"
-                    variant="outline"
-                    onClick={() => setSelectedPost(null)}
-                  >
-                    Fechar
-                  </Button>
-
-                  {selectedPost?.status !== "posted" && (
-                    <Button
-                      onClick={handleConfirm}
-                      className="w-full md:w-auto bg-green-600 hover:bg-green-700"
-                    >
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      Confirmar Postagem
-                    </Button>
-                  )}
-                </div>
+                <Button
+                  className="hidden md:block md:order-2"
+                  variant="outline"
+                  onClick={() => setSelectedPost(null)}
+                >
+                  Fechar
+                </Button>
               </DialogFooter>
             </>
           )}
