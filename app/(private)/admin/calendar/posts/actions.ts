@@ -29,7 +29,10 @@ async function getAuthorizedCalendarClient() {
 
 export async function getClients() {
   const supabase = await getAuthorizedCalendarClient();
-  const { data, error } = await supabase.from("companies").select("*");
+  const { data, error } = await supabase
+    .from("companies")
+    .select("*")
+    .eq("status", "active");
 
   if (error) {
     console.error("Erro ao buscar companies:", error);

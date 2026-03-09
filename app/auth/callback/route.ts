@@ -113,6 +113,27 @@ export async function GET(request: Request) {
       }
 
       // 4. Define para onde vai baseado no cargo descoberto
+      if (role === "client" && user) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("company_id")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profileData?.company_id) {
+          const { data: companyData } = await supabase
+            .from("companies")
+            .select("status")
+            .eq("id", profileData.company_id)
+            .maybeSingle();
+
+          if (companyData?.status === "inactive") {
+            await supabase.auth.signOut();
+            return NextResponse.redirect(`${origin}/?error=client_inactive`);
+          }
+        }
+      }
+
       const finalUrl =
         role === "admin"
           ? "/admin/dashboard"

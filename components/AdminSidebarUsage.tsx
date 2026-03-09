@@ -34,6 +34,7 @@ import {
   Video,
   Handshake,
   DollarSign,
+  Users,
 } from "lucide-react";
 
 // Itens principais
@@ -52,6 +53,11 @@ const mainItems = [
     title: "Financeiro",
     url: "/admin/finance",
     icon: DollarSign,
+  },
+  {
+    title: "Clientes",
+    url: "/admin/clients",
+    icon: Users,
   },
 ];
 

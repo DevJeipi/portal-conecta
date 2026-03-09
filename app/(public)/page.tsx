@@ -1,14 +1,14 @@
 "use client";
 
 import { createClient } from "@/utils/supabase/client";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { GridScan } from "@/components/GridScan";
-import { AtSign, Lock, Eye, EyeOff } from "lucide-react";
+import { AtSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { login } from "@/app/(public)/actions";
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
 
   const handleGoogleLogin = async () => {
     const supabase = createClient();
@@ -51,8 +51,14 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {error === "client_inactive" && (
+          <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            Seu acesso está inativo. Entre em contato com a equipe Conecta.
+          </div>
+        )}
+
         {/* CONTAINER INPUTS */}
-        <form action={login}>
+        <form>
           <Button
             className="w-full mb-6 font-primary bg-neutral cursor-pointer hover:scale-102 transition-all"
             variant="outline"

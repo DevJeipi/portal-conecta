@@ -4,6 +4,22 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
+async function isClientActive(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  profile: { company_id?: string | null; company_name?: string | null; email?: string | null },
+) {
+  if (!profile.company_id) return true;
+
+  const { data: company } = await supabase
+    .from("companies")
+    .select("status")
+    .eq("id", profile.company_id)
+    .maybeSingle();
+
+  if (!company) return true;
+  return company.status !== "inactive";
+}
+
 export async function login(formData: FormData) {
   // Cria o cliente do Supabase
   const supabase = await createClient();
@@ -26,11 +42,19 @@ export async function login(formData: FormData) {
   // Se logou, busca a ROLE na tabela profiles
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, company_id, company_name, email")
     .eq("id", data.user.id)
     .single();
 
   const userRole = profile?.role || "client";
+
+  if (userRole === "client") {
+    const active = await isClientActive(supabase, profile ?? {});
+    if (!active) {
+      await supabase.auth.signOut();
+      return redirect("/?error=client_inactive");
+    }
+  }
 
   // Salva o cookie extra para o Middleware ler rápido
   const cookieStore = await cookies();

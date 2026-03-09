@@ -10,6 +10,28 @@ const publicRoutes = [
 
 const REDIRECT_WHEN_NOT_AUTHENTICATED_ROUTE = "/";
 
+async function isClientActiveForUser(
+  supabase: ReturnType<typeof createServerClient>,
+  userId: string,
+) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("company_id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (!profile?.company_id) return true;
+
+  const { data: company } = await supabase
+    .from("companies")
+    .select("status")
+    .eq("id", profile.company_id)
+    .maybeSingle();
+
+  if (!company) return true;
+  return company.status !== "inactive";
+}
+
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
@@ -38,7 +60,11 @@ export async function proxy(request: NextRequest) {
   };
 
   if (userRole) {
-    if (publicRoute && publicRoute.whenAuthenticated === "redirect") {
+    if (
+      publicRoute &&
+      publicRoute.whenAuthenticated === "redirect" &&
+      userRole !== "client"
+    ) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = getHomeByRole(userRole);
       return NextResponse.redirect(redirectUrl);
@@ -107,6 +133,8 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse;
   }
 
+  let effectiveRole = userRole;
+
   if (!userRole) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -115,6 +143,7 @@ export async function proxy(request: NextRequest) {
       .maybeSingle();
 
     const resolvedRole = profile?.role ?? "client";
+    effectiveRole = resolvedRole;
     supabaseResponse.cookies.set("user_role", resolvedRole, {
       path: "/",
       httpOnly: true,
@@ -122,12 +151,6 @@ export async function proxy(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7,
     });
-
-    if (publicRoute && publicRoute.whenAuthenticated === "redirect") {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = getHomeByRole(resolvedRole);
-      return NextResponse.redirect(redirectUrl);
-    }
 
     if (path.startsWith("/admin")) {
       if (resolvedRole === "employee" && !path.startsWith("/admin/calendar")) {
@@ -148,6 +171,24 @@ export async function proxy(request: NextRequest) {
       redirectUrl.pathname = getHomeByRole(resolvedRole);
       return NextResponse.redirect(redirectUrl);
     }
+  }
+
+  if (effectiveRole === "client") {
+    const active = await isClientActiveForUser(supabase, user.id);
+    if (!active) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/";
+      redirectUrl.searchParams.set("error", "client_inactive");
+      const response = NextResponse.redirect(redirectUrl);
+      response.cookies.delete("user_role");
+      return response;
+    }
+  }
+
+  if (publicRoute && publicRoute.whenAuthenticated === "redirect") {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = getHomeByRole(effectiveRole ?? "client");
+    return NextResponse.redirect(redirectUrl);
   }
 
   return supabaseResponse;
