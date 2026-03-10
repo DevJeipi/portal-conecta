@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { requireAdmin } from "@/lib/auth-guard";
 import type { Deal } from "../pipeline/constants";
 
 export type DashboardStats = {
@@ -17,7 +17,7 @@ export type DashboardStats = {
 };
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const supabase = await createClient();
+  const { supabase } = await requireAdmin();
   const now = new Date();
 
   // Data de daqui a 48 horas

@@ -2,7 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { supabaseAnonKey, supabaseUrl } from "@/utils/supabase/env";
 
-// Rotas que não precisam de login
 const publicRoutes = [
   { path: "/", whenAuthenticated: "redirect" },
   { path: "/auth/callback", whenAuthenticated: "next" },
@@ -32,11 +31,15 @@ async function isClientActiveForUser(
   return company.status !== "inactive";
 }
 
+const getHomeByRole = (role: string) => {
+  if (role === "admin") return "/admin/dashboard";
+  if (role === "employee") return "/admin/calendar/posts";
+  return "/dashboard";
+};
+
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // Nunca proteger arquivos estaticos/publicos (manifest, sw, icones, etc).
-  // Se estes assets forem redirecionados para login, PWA quebra com erro de sintaxe.
   const isStaticAsset =
     path === "/sw.js" ||
     path === "/manifest.json" ||
@@ -52,72 +55,25 @@ export async function proxy(request: NextRequest) {
 
   const publicRoute = publicRoutes.find((route) => route.path === path);
 
-  const userRole = request.cookies.get("user_role")?.value;
-  const getHomeByRole = (role: string) => {
-    if (role === "admin") return "/admin/dashboard";
-    if (role === "employee") return "/admin/calendar/posts";
-    return "/dashboard";
-  };
-
-  if (userRole) {
-    if (
-      publicRoute &&
-      publicRoute.whenAuthenticated === "redirect" &&
-      userRole !== "client"
-    ) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = getHomeByRole(userRole);
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    if (path.startsWith("/admin")) {
-      // Employee so pode acessar o modulo de calendario do admin.
-      if (userRole === "employee" && !path.startsWith("/admin/calendar")) {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = "/admin/calendar/posts";
-        return NextResponse.redirect(redirectUrl);
-      }
-
-      if (userRole !== "admin" && userRole !== "employee") {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = "/dashboard";
-        return NextResponse.redirect(redirectUrl);
-      }
-    }
-
-    // /dashboard e area exclusiva de cliente.
-    if (path.startsWith("/dashboard") && userRole !== "client") {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = getHomeByRole(userRole);
-      return NextResponse.redirect(redirectUrl);
-    }
-  }
-
-  // Renova a sessão do Supabase Auth a cada request para manter os tokens válidos
   let supabaseResponse = NextResponse.next({ request });
 
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
-          );
-        },
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value),
+        );
+        supabaseResponse = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options),
+        );
       },
     },
-  );
+  });
 
-  // getUser() força a renovação do token se estiver expirado
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -133,47 +89,49 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse;
   }
 
-  let effectiveRole = userRole;
+  // SEMPRE busca a role do banco — nunca confia no cookie
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
 
-  if (!userRole) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
+  const verifiedRole = profile?.role ?? "client";
 
-    const resolvedRole = profile?.role ?? "client";
-    effectiveRole = resolvedRole;
-    supabaseResponse.cookies.set("user_role", resolvedRole, {
+  // Atualiza o cookie com a role verificada do banco
+  const cookieRole = request.cookies.get("user_role")?.value;
+  if (cookieRole !== verifiedRole) {
+    supabaseResponse.cookies.set("user_role", verifiedRole, {
       path: "/",
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7,
     });
+  }
 
-    if (path.startsWith("/admin")) {
-      if (resolvedRole === "employee" && !path.startsWith("/admin/calendar")) {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = "/admin/calendar/posts";
-        return NextResponse.redirect(redirectUrl);
-      }
-
-      if (resolvedRole !== "admin" && resolvedRole !== "employee") {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = "/dashboard";
-        return NextResponse.redirect(redirectUrl);
-      }
+  // Controle de acesso baseado na role VERIFICADA do banco
+  if (path.startsWith("/admin")) {
+    if (verifiedRole === "employee" && !path.startsWith("/admin/calendar")) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/admin/calendar/posts";
+      return NextResponse.redirect(redirectUrl);
     }
 
-    if (path.startsWith("/dashboard") && resolvedRole !== "client") {
+    if (verifiedRole !== "admin" && verifiedRole !== "employee") {
       const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = getHomeByRole(resolvedRole);
+      redirectUrl.pathname = "/dashboard";
       return NextResponse.redirect(redirectUrl);
     }
   }
 
-  if (effectiveRole === "client") {
+  if (path.startsWith("/dashboard") && verifiedRole !== "client") {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = getHomeByRole(verifiedRole);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (verifiedRole === "client") {
     const active = await isClientActiveForUser(supabase, user.id);
     if (!active) {
       const redirectUrl = request.nextUrl.clone();
@@ -187,7 +145,7 @@ export async function proxy(request: NextRequest) {
 
   if (publicRoute && publicRoute.whenAuthenticated === "redirect") {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = getHomeByRole(effectiveRole ?? "client");
+    redirectUrl.pathname = getHomeByRole(verifiedRole);
     return NextResponse.redirect(redirectUrl);
   }
 

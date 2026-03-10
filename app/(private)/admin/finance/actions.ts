@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { requireAdmin } from "@/lib/auth-guard";
 import type { Deal } from "../pipeline/constants";
 
 export type FinanceMonthlyPlan = {
@@ -28,7 +28,7 @@ const toMonthStartDate = (month: string) => {
 };
 
 export async function getFinanceDeals(): Promise<WithWarning<Deal[]>> {
-  const supabase = await createClient();
+  const { supabase } = await requireAdmin();
   const { data, error } = await supabase
     .from("deals")
     .select("id,title,company_name,value,stage,created_at,deal_type")
@@ -45,7 +45,7 @@ export async function getFinanceDeals(): Promise<WithWarning<Deal[]>> {
 export async function getMonthlyPlans(
   fromMonth: string,
 ): Promise<WithWarning<FinanceMonthlyPlan[]>> {
-  const supabase = await createClient();
+  const { supabase } = await requireAdmin();
   const fromDate = toMonthStartDate(fromMonth).toISOString();
 
   const { data, error } = await supabase
@@ -75,7 +75,7 @@ export async function getMonthlyPlans(
 export async function getCostsByMonth(
   month: string,
 ): Promise<WithWarning<FinanceCostItem[]>> {
-  const supabase = await createClient();
+  const { supabase } = await requireAdmin();
 
   const start = toMonthStartDate(month);
   const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);

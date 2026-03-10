@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAdmin } from "@/lib/auth-guard";
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { Deal } from "./constants";
@@ -185,7 +186,7 @@ async function queueClientOnboarding(
 }
 
 export async function getDeals(): Promise<Deal[]> {
-  const supabase = await createClient();
+  const { supabase } = await requireAdmin();
   const { data, error } = await supabase
     .from("deals")
     .select("*")
@@ -208,7 +209,7 @@ export async function updateDealStage(
   companyStatus?: CompanyResolveStatus;
   companyErrorCode?: CompanyErrorCode | null;
 }> {
-  const supabase = await createClient();
+  const { supabase } = await requireAdmin();
 
   if (newStage === "won") {
     const { data: dealData, error: dealError } = await supabase
@@ -279,7 +280,7 @@ export async function updateDealStage(
 }
 
 export async function deleteDeal(dealId: string) {
-  const supabase = await createClient();
+  const { supabase } = await requireAdmin();
 
   const { error } = await supabase.from("deals").delete().eq("id", dealId);
 
@@ -293,7 +294,7 @@ export async function deleteDeal(dealId: string) {
 }
 
 export async function createDeal(formData: FormData) {
-  const supabase = await createClient();
+  const { supabase } = await requireAdmin();
 
   const title = (formData.get("title") as string)?.trim();
   const company_name = (formData.get("company_name") as string)?.trim();
