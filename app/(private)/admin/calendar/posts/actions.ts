@@ -59,8 +59,6 @@ export async function getCalendarPosts(clientId?: string) {
     console.error("Erro ao buscar posts:", error);
   }
 
-  console.log("Posts retornados:", JSON.stringify(data, null, 2));
-
   return data || [];
 }
 

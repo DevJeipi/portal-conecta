@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -35,6 +35,7 @@ type ToastItem = {
 };
 
 export function PipelineBoard({ initialDeals }: { initialDeals: Deal[] }) {
+  const dndId = useId();
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
@@ -165,10 +166,18 @@ export function PipelineBoard({ initialDeals }: { initialDeals: Deal[] }) {
           description: "Uma company existente foi associada ao deal ganho.",
         });
       } else if (result.companyStatus === "failed") {
+        const failedDescription =
+          result.companyErrorCode === "missing_company_name"
+            ? "Preencha o nome da empresa na deal para criar ou vincular a company."
+            : result.companyErrorCode === "constraint_violation"
+              ? "Nao foi possivel criar a company por restricao de dados no banco (status)."
+              : result.companyErrorCode === "permission_denied"
+                ? "Verifique as permissoes da tabela companies (RLS/policies)."
+                : "Nao foi possivel criar ou vincular company. Verifique os dados da deal e o banco.";
         pushToast({
           type: "error",
           title: "Nao foi possivel criar/vincular company",
-          description: "Verifique as permissoes da tabela companies (RLS/policies).",
+          description: failedDescription,
         });
       }
 
@@ -249,6 +258,7 @@ export function PipelineBoard({ initialDeals }: { initialDeals: Deal[] }) {
   return (
     <>
       <DndContext
+        id={dndId}
         sensors={sensors}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}

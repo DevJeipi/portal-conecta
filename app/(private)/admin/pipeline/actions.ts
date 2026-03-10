@@ -15,6 +15,11 @@ type DealRow = {
 
 type OnboardingQueueStatus = "queued" | "skipped_no_email" | "failed";
 type CompanyResolveStatus = "not_needed" | "linked_existing" | "created" | "failed";
+type CompanyErrorCode =
+  | "missing_company_name"
+  | "permission_denied"
+  | "constraint_violation"
+  | "unknown";
 
 async function ensureCompanyForDeal(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -24,12 +29,17 @@ async function ensureCompanyForDeal(
     return {
       companyId: deal.company_id,
       status: "not_needed" as CompanyResolveStatus,
+      errorCode: null as CompanyErrorCode | null,
     };
   }
 
   const companyName = deal.company_name?.trim();
   if (!companyName) {
-    return { companyId: null, status: "failed" as CompanyResolveStatus };
+    return {
+      companyId: null,
+      status: "failed" as CompanyResolveStatus,
+      errorCode: "missing_company_name" as CompanyErrorCode,
+    };
   }
 
   const { data: existingByName } = await supabase
@@ -42,6 +52,7 @@ async function ensureCompanyForDeal(
     return {
       companyId: existingByName.id as string,
       status: "linked_existing" as CompanyResolveStatus,
+      errorCode: null as CompanyErrorCode | null,
     };
   }
 
@@ -55,12 +66,16 @@ async function ensureCompanyForDeal(
     return {
       companyId: existingByNameInsensitive.id as string,
       status: "linked_existing" as CompanyResolveStatus,
+      errorCode: null as CompanyErrorCode | null,
     };
   }
 
   const { data: insertedCompany, error } = await supabase
     .from("companies")
-    .insert({ name: companyName })
+    .insert({
+      name: companyName,
+      status: "active",
+    })
     .select("id")
     .single();
 
@@ -75,15 +90,28 @@ async function ensureCompanyForDeal(
       return {
         companyId: companyAfterError.id as string,
         status: "linked_existing" as CompanyResolveStatus,
+        errorCode: null as CompanyErrorCode | null,
       };
     }
 
-    return { companyId: null, status: "failed" as CompanyResolveStatus };
+    const errorCode: CompanyErrorCode =
+      error.code === "42501"
+        ? "permission_denied"
+        : error.code === "23514"
+          ? "constraint_violation"
+          : "unknown";
+
+    return {
+      companyId: null,
+      status: "failed" as CompanyResolveStatus,
+      errorCode,
+    };
   }
 
   return {
     companyId: (insertedCompany?.id as string | undefined) ?? null,
     status: "created" as CompanyResolveStatus,
+    errorCode: null as CompanyErrorCode | null,
   };
 }
 
@@ -178,6 +206,7 @@ export async function updateDealStage(
   success: boolean;
   onboardingQueueStatus?: OnboardingQueueStatus;
   companyStatus?: CompanyResolveStatus;
+  companyErrorCode?: CompanyErrorCode | null;
 }> {
   const supabase = await createClient();
 
@@ -194,6 +223,7 @@ export async function updateDealStage(
         success: false,
         onboardingQueueStatus: "failed" as const,
         companyStatus: "failed" as const,
+        companyErrorCode: "unknown" as const,
       };
     }
 
@@ -215,6 +245,7 @@ export async function updateDealStage(
         success: false,
         onboardingQueueStatus: "failed" as const,
         companyStatus: companyResolution.status,
+        companyErrorCode: companyResolution.errorCode,
       };
     }
 
@@ -229,6 +260,7 @@ export async function updateDealStage(
       success: true,
       onboardingQueueStatus,
       companyStatus: companyResolution.status,
+      companyErrorCode: companyResolution.errorCode,
     };
   }
 
