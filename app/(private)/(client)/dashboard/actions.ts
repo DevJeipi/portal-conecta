@@ -83,6 +83,7 @@ export async function getClientCalendarPosts() {
     .from("content_posts")
     .select("*")
     .eq("company_id", resolvedCompanyId)
+    .not("post_date", "is", null)
     .order("post_date", { ascending: true });
 
   if (error) {

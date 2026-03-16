@@ -31,6 +31,11 @@ type CalendarPost = {
   post_link?: string | null;
 };
 
+function safeParseDate(value: string) {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 export default function CalendarViewClient({ posts }: { posts: CalendarPost[] }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedPost, setSelectedPost] = useState<CalendarPost | null>(null);
@@ -42,18 +47,21 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
   const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
   const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   const today = new Date();
-  const todayPosts = posts.filter((post) =>
-    isSameDay(new Date(post.post_date), today),
+  const validPosts = posts.filter((post) => !!safeParseDate(post.post_date));
+
+  const todayPosts = validPosts.filter((post) =>
+    isSameDay(safeParseDate(post.post_date)!, today),
   );
-  const monthPosts = posts
+  const monthPosts = validPosts
     .filter((post) =>
-      isWithinInterval(new Date(post.post_date), {
+      isWithinInterval(safeParseDate(post.post_date)!, {
         start: monthStart,
         end: monthEnd,
       }),
     )
     .sort(
-      (a, b) => new Date(a.post_date).getTime() - new Date(b.post_date).getTime(),
+      (a, b) =>
+        safeParseDate(a.post_date)!.getTime() - safeParseDate(b.post_date)!.getTime(),
     );
 
   return (
@@ -97,8 +105,8 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
 
               <div className="grid grid-cols-7 flex-1 auto-rows-fr">
                 {calendarDays.map((day) => {
-                  const dayPosts = posts.filter((post) =>
-                    isSameDay(new Date(post.post_date), day),
+                  const dayPosts = validPosts.filter((post) =>
+                    isSameDay(safeParseDate(post.post_date)!, day),
                   );
                   const isCurrentMonth = isSameMonth(day, currentDate);
                   const isDayToday = isToday(day);
@@ -170,7 +178,7 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
               ) : (
                 todayPosts.map((post) => {
                   const isPublished = post.status === "posted";
-                  const postTime = format(new Date(post.post_date), "HH:mm");
+                  const postTime = format(safeParseDate(post.post_date)!, "HH:mm");
                   return (
                     <button
                       key={post.id}
@@ -236,7 +244,10 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
               </p>
               <p>
                 <span className="font-medium">Data:</span>{" "}
-                {format(new Date(selectedPost.post_date), "dd/MM/yyyy HH:mm")}
+                {(() => {
+                  const d = safeParseDate(selectedPost.post_date);
+                  return d ? format(d, "dd/MM/yyyy HH:mm") : "Data inválida";
+                })()}
               </p>
               {selectedPost.description ? (
                 <p>
