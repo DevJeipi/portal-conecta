@@ -126,3 +126,23 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Scrollbar customizada azul, integrada ao tema */
+.scrollbar-blue {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) transparent;
+}
+
+.scrollbar-blue::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-blue::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-blue::-webkit-scrollbar-thumb {
+  background-color: var(--color-primary);
+  border-radius: 9999px;
+}

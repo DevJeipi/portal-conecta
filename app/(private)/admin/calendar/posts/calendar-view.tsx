@@ -523,7 +523,7 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
 
       {/* --- MODAL DE DETALHES / EDIÇÃO DO POST --- */}
       <Dialog open={!!selectedPost} onOpenChange={handleCloseDetails}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto scrollbar-blue">
           <DialogHeader>
             <DialogTitle>
               {isEditing ? "Editar Publicação" : "Detalhes da Publicação"}
@@ -583,8 +583,10 @@ export default function CalendarView({ clients, posts, initialClientId }: any) {
                     <Label className="text-right text-muted-foreground">
                       Legenda
                     </Label>
-                    <div className="col-span-3 text-sm text-neutral-600 whitespace-pre-wrap">
-                      {selectedPost.caption}
+                    <div className="col-span-3">
+                      <div className="text-sm text-neutral-600 whitespace-pre-wrap pr-1 border border-input/40 rounded-md px-3 py-2 bg-muted/40">
+                        {selectedPost.caption}
+                      </div>
                     </div>
                   </div>
                 )}
