@@ -28,6 +28,7 @@ type CalendarPost = {
   description?: string | null;
   caption?: string | null;
   status?: string | null;
+  post_link?: string | null;
 };
 
 export default function CalendarViewClient({ posts }: { posts: CalendarPost[] }) {
@@ -246,6 +247,19 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
               {selectedPost.caption ? (
                 <p>
                   <span className="font-medium">Legenda:</span> {selectedPost.caption}
+                </p>
+              ) : null}
+              {selectedPost.post_link ? (
+                <p>
+                  <span className="font-medium">Link:</span>{" "}
+                  <a
+                    href={selectedPost.post_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline break-all"
+                  >
+                    {selectedPost.post_link}
+                  </a>
                 </p>
               ) : null}
               <p className="flex items-center gap-2">

@@ -74,7 +74,8 @@ export async function createPost(formData: FormData) {
 
   console.log("Tentando criar post para a empresa:", clientId);
 
-  const scheduledDate = new Date(`${date}T${time}:00`);
+  // Interpretar sempre como horário de Brasília (UTC-03)
+  const scheduledDate = new Date(`${date}T${time}:00-03:00`);
 
   const insertData: Record<string, any> = {
     title,
@@ -132,7 +133,8 @@ export async function updatePost(postId: string, formData: FormData) {
   const caption = (formData.get("caption") as string) || null;
   const postLink = (formData.get("postLink") as string) || null;
 
-  const scheduledDate = new Date(`${date}T${time}:00`);
+  // Interpretar sempre como horário de Brasília (UTC-03)
+  const scheduledDate = new Date(`${date}T${time}:00-03:00`);
 
   const updateData: Record<string, any> = {
     title,
