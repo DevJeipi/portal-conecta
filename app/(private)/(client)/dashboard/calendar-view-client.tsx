@@ -18,7 +18,12 @@ import {
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, CheckCircle2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
 type CalendarPost = {
@@ -36,7 +41,11 @@ function safeParseDate(value: string) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-export default function CalendarViewClient({ posts }: { posts: CalendarPost[] }) {
+export default function CalendarViewClient({
+  posts,
+}: {
+  posts: CalendarPost[];
+}) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedPost, setSelectedPost] = useState<CalendarPost | null>(null);
 
@@ -61,7 +70,8 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
     )
     .sort(
       (a, b) =>
-        safeParseDate(a.post_date)!.getTime() - safeParseDate(b.post_date)!.getTime(),
+        safeParseDate(a.post_date)!.getTime() -
+        safeParseDate(b.post_date)!.getTime(),
     );
 
   return (
@@ -122,12 +132,13 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
                     >
                       <div className="flex items-center justify-end mb-2">
                         <span
-                          className={`text-sm inline-flex items-center justify-center ${isDayToday
-                            ? "bg-blue-600 text-white rounded-full w-7 h-7 font-bold"
-                            : !isCurrentMonth
-                              ? "text-neutral-300"
-                              : "text-neutral-600 font-medium"
-                            }`}
+                          className={`text-sm inline-flex items-center justify-center ${
+                            isDayToday
+                              ? "bg-blue-600 text-white rounded-full w-7 h-7 font-bold"
+                              : !isCurrentMonth
+                                ? "text-neutral-300"
+                                : "text-neutral-600 font-medium"
+                          }`}
                         >
                           {format(day, "d")}
                         </span>
@@ -143,9 +154,10 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
                               className={`
                               text-xs text-left border rounded px-2 py-1.5 truncate shadow-sm transition-all
                               flex items-center gap-1.5 w-full
-                              ${isPublished
-                                ? "bg-green-50 text-green-700 border-green-200"
-                                : "bg-blue-50 text-blue-700 border-blue-200"
+                              ${
+                                isPublished
+                                  ? "bg-green-50 text-green-700 border-green-200"
+                                  : "bg-blue-50 text-blue-700 border-blue-200"
                               }
                             `}
                             >
@@ -178,23 +190,28 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
               ) : (
                 todayPosts.map((post) => {
                   const isPublished = post.status === "posted";
-                  const postTime = format(safeParseDate(post.post_date)!, "HH:mm");
+                  const postTime = format(
+                    safeParseDate(post.post_date)!,
+                    "HH:mm",
+                  );
                   return (
                     <button
                       key={post.id}
                       onClick={() => setSelectedPost(post)}
-                      className={`w-full text-left rounded-lg border p-3 transition-all hover:shadow-md ${isPublished
-                        ? "border-l-4 border-l-green-500 border-green-200 bg-white"
-                        : "border-l-4 border-l-blue-500 border-blue-200 bg-white"
-                        }`}
+                      className={`w-full text-left rounded-lg border p-3 transition-all hover:shadow-md ${
+                        isPublished
+                          ? "border-l-4 border-l-green-500 border-green-200 bg-white"
+                          : "border-l-4 border-l-blue-500 border-blue-200 bg-white"
+                      }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <Badge
                           variant="secondary"
-                          className={`text-[10px] px-1.5 py-0 ${isPublished
-                            ? "bg-green-100 text-green-700"
-                            : "bg-blue-100 text-blue-700"
-                            }`}
+                          className={`text-[10px] px-1.5 py-0 ${
+                            isPublished
+                              ? "bg-green-100 text-green-700"
+                              : "bg-blue-100 text-blue-700"
+                          }`}
                         >
                           {isPublished ? "publicado" : "agendado"}
                         </Badge>
@@ -212,7 +229,9 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
             </div>
 
             <div className="mt-4 pt-4 border-t">
-              <p className="text-sm font-medium text-neutral-600 mb-2">Legenda</p>
+              <p className="text-sm font-medium text-neutral-600 mb-2">
+                Legenda
+              </p>
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-blue-500" />
@@ -231,7 +250,10 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
         </div>
       </div>
 
-      <Dialog open={!!selectedPost} onOpenChange={(open) => !open && setSelectedPost(null)}>
+      <Dialog
+        open={!!selectedPost}
+        onOpenChange={(open) => !open && setSelectedPost(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Detalhes da Demanda</DialogTitle>
@@ -240,7 +262,8 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
           {selectedPost && (
             <div className="grid gap-3 text-sm">
               <p>
-                <span className="font-medium">Título:</span> {selectedPost.title}
+                <span className="font-medium">Título:</span>{" "}
+                {selectedPost.title}
               </p>
               <p>
                 <span className="font-medium">Data:</span>{" "}
@@ -256,8 +279,9 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
                 </p>
               ) : null}
               {selectedPost.caption ? (
-                <p>
-                  <span className="font-medium">Legenda:</span> {selectedPost.caption}
+                <p className="whitespace-pre-wrap wrap-break-word">
+                  <span className="font-medium">Legenda:</span>{" "}
+                  {selectedPost.caption}
                 </p>
               ) : null}
               {selectedPost.post_link ? (
@@ -276,9 +300,14 @@ export default function CalendarViewClient({ posts }: { posts: CalendarPost[] })
               <p className="flex items-center gap-2">
                 <span className="font-medium">Status:</span>
                 {selectedPost.status === "posted" ? (
-                  <Badge className="bg-green-600 hover:bg-green-700">Publicado</Badge>
+                  <Badge className="bg-green-600 hover:bg-green-700">
+                    Publicado
+                  </Badge>
                 ) : (
-                  <Badge variant="secondary" className="text-blue-600 bg-blue-50">
+                  <Badge
+                    variant="secondary"
+                    className="text-blue-600 bg-blue-50"
+                  >
                     Agendado
                   </Badge>
                 )}
